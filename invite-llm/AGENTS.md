@@ -12,6 +12,10 @@ Current feature: a login form that authenticates against a LiteLLM proxy server,
 - `npm run build` — `tsc && vite build`. Note: `tsc` is typecheck-only (`noEmit: true`); Vite does the actual bundling to `dist/`. Type errors fail the build.
 - `npm run preview` — serve the production build locally
 
+## Configuration
+
+- The LiteLLM server URL is **not editable in the UI** — it comes from the `VITE_LITELLM_URL` env var (Vite inlines it at build/dev start). Set it in `.env` (default: `http://localhost:4000`) or `.env.local`; restart the dev server after changing it.
+
 There is no test framework, linter, or formatter configured. The only automated check is the `tsc` pass inside `build`.
 
 ## TypeScript constraints that will bite you

@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'litellm_session'
 
+const SERVER_URL = String(import.meta.env.VITE_LITELLM_URL ?? 'http://localhost:4000').replace(/\/+$/, '')
+
 interface Session {
   token: string
   api_key: string
@@ -138,7 +140,7 @@ function parseVirtualKey(raw: Record<string, unknown>): VirtualKey {
 
 export function loginForm() {
   return {
-    serverUrl: 'http://localhost:4000',
+    serverUrl: SERVER_URL,
     username: '',
     password: '',
     loading: false,
