@@ -90,6 +90,13 @@ h1 {
   color: var(--text-h);
 }
 
+.beside {
+  margin-left: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
 .subtitle {
   margin: 0 0 1.5rem;
   font-size: 0.95rem;

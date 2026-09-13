@@ -148,6 +148,7 @@ export function loginForm() {
 
     keys: [] as VirtualKey[],
     teamNames: {} as Record<string, string>,
+    userAlias: '',
     keysLoading: false,
     keysError: '',
 
@@ -169,6 +170,7 @@ export function loginForm() {
         }
         this.session = session
         void this.loadKeys()
+        void this.loadUserAlias()
       } catch {
         localStorage.removeItem(STORAGE_KEY)
       }
@@ -199,6 +201,7 @@ export function loginForm() {
         this.password = ''
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: session.token }))
         void this.loadKeys()
+        void this.loadUserAlias()
       } catch {
         this.error = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
       } finally {
@@ -210,6 +213,7 @@ export function loginForm() {
       this.session = null
       this.keys = []
       this.teamNames = {}
+      this.userAlias = ''
       this.keysError = ''
       this.closeRegenModal()
       localStorage.removeItem(STORAGE_KEY)
@@ -281,6 +285,23 @@ export function loginForm() {
           if (typeof alias === 'string' && alias !== '') this.teamNames[teamId] = alias
         }),
       )
+    },
+
+    async loadUserAlias() {
+      const session = this.session
+      if (session === null) return
+      try {
+        const base = this.serverUrl.replace(/\/+$/, '')
+        const response = await fetch(`${base}/user/info?user_id=${encodeURIComponent(session.user_id)}`, {
+          headers: { Authorization: `Bearer ${session.api_key}` },
+        })
+        if (!response.ok) return
+        const body: unknown = await response.json().catch(() => null)
+        const alias = (body as { user_info?: { user_alias?: string } } | null)?.user_info?.user_alias
+        if (typeof alias === 'string' && alias !== '') this.userAlias = alias
+      } catch {
+        // best-effort: fall back to email/user_id in the header
+      }
     },
 
     teamName(key: VirtualKey): string {

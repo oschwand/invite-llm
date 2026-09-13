@@ -10,18 +10,13 @@
     <main class="card">
       <template x-if="session">
         <section>
-          <h1>Signed in</h1>
-          <p class="subtitle" x-text="session.user_email || session.user_id"></p>
+          <h1>
+            <span x-text="userAlias || session.user_email || session.user_id"></span>
+            <span class="beside" x-show="userAlias && session.user_email" x-text="session.user_email"></span>
+          </h1>
           <dl>
-            <div><dt>User ID</dt><dd x-text="session.user_id"></dd></div>
             <div><dt>Role</dt><dd x-text="session.user_role || 'unknown'"></dd></div>
-            <div><dt>Session expires</dt><dd x-text="new Date(session.expires_at * 1000).toLocaleString()"></dd></div>
-            <div><dt>Server</dt><dd x-text="serverUrl"></dd></div>
           </dl>
-          <div class="token">
-            <code x-text="session.token.slice(0, 24) + '…'"></code>
-            <button type="button" @click="copyValue(session.token)" x-text="copiedValue === session.token ? 'Copied' : 'Copy token'"></button>
-          </div>
           <section class="keys">
             <div class="keys-header">
               <h2>Virtual keys <span class="count" x-text="keys.length"></span></h2>
