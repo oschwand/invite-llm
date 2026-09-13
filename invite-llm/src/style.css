@@ -69,12 +69,53 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.banner {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.85rem 3.5rem 0.85rem 1.5rem;
+  text-align: center;
+  background: var(--accent-bg);
+  border-bottom: 1px solid var(--accent-border);
+}
+
+.banner-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--accent);
+}
+
+.banner-actions {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.banner-button {
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent-border);
+}
+
+a.banner-button {
+  display: inline-block;
+  text-decoration: none;
 }
 
 .card {
-  width: min(720px, calc(100vw - 2rem));
+  width: min(1100px, calc(100vw - 2rem));
+  margin: auto;
   padding: 2rem;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -237,7 +278,7 @@ h2 {
 }
 
 .table-wrap {
-  overflow-x: auto;
+  width: 100%;
 }
 
 table {
@@ -257,7 +298,6 @@ th {
 
 td {
   padding: 0.45rem 0.5rem;
-  white-space: nowrap;
   color: var(--text-h);
   border-bottom: 1px solid var(--border);
 }
@@ -271,11 +311,6 @@ td code {
 
 .mono {
   font-family: var(--mono);
-}
-
-.wrap {
-  white-space: normal;
-  min-width: 8rem;
 }
 
 .link {

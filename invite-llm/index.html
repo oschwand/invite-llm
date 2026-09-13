@@ -4,9 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>invite-llm</title>
+    <title>Invite LiteLLM</title>
   </head>
   <body x-data="loginForm" x-cloak>
+    <header class="banner">
+      <span class="banner-title">Invite LiteLLM</span>
+      <div class="banner-actions" x-show="session">
+        <a class="banner-button" :href="serverUrl + '/ui'" target="_blank" rel="noopener">Go to LiteLLM Dashboard</a>
+        <button type="button" class="banner-button" @click="logout()">Sign out</button>
+      </div>
+    </header>
     <main class="card">
       <template x-if="session">
         <section>
@@ -46,7 +53,7 @@
                       <td x-text="key.key_alias || '(unnamed)'"></td>
                       <td class="mono" x-text="key.key_name || '—'"></td>
                       <td class="mono" x-show="session.user_role !== 'internal_user'" :title="key.user_id || ''" x-text="key.user_id ? key.user_id.slice(0, 8) + '…' : '—'"></td>
-                      <td class="wrap" :title="key.team_id || ''" x-text="teamName(key)"></td>
+                      <td :title="key.team_id || ''" x-text="teamName(key)"></td>
                       <td x-text="formatSpend(key)"></td>
                       <td x-text="formatBudget(key)"></td>
                       <td x-text="formatExpiry(key)"></td>
@@ -58,7 +65,6 @@
               </table>
             </div>
           </section>
-          <button type="button" class="primary" @click="logout()">Sign out</button>
         </section>
       </template>
       <template x-if="!session">
