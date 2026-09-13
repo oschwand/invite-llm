@@ -309,3 +309,49 @@ td code {
   background: var(--error-bg);
   border-color: var(--error-border);
 }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  width: min(480px, 100%);
+  padding: 1.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.modal-actions .primary {
+  width: auto;
+  margin-top: 0;
+}
+
+.warning {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-h);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 8px;
+}
+
+button.danger {
+  color: #fff;
+  background: var(--error);
+  border-color: var(--error);
+}

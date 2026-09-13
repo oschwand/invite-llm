@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>invite-llm</title>
   </head>
-  <body>
-    <main class="card" x-data="loginForm" x-cloak>
+  <body x-data="loginForm" x-cloak>
+    <main class="card">
       <template x-if="session">
         <section>
           <h1>Signed in</h1>
@@ -42,6 +42,7 @@
                     <th>Budget</th>
                     <th>Expires</th>
                     <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -55,6 +56,7 @@
                       <td x-text="formatBudget(key)"></td>
                       <td x-text="formatExpiry(key)"></td>
                       <td><span class="badge" :class="keyStatus(key)" x-text="keyStatus(key)"></span></td>
+                      <td><button type="button" class="small" @click="openRegenModal(key)">Regenerate</button></td>
                     </tr>
                   </template>
                 </tbody>
@@ -87,6 +89,50 @@
         </section>
       </template>
     </main>
+
+    <div class="modal-backdrop" x-show="regenKey !== null" x-cloak @keydown.escape.window="closeRegenModal()">
+      <div class="modal" @click.outside="closeRegenModal()">
+        <template x-if="regenKey">
+          <div>
+            <h2 x-text="regenStage === 'done' ? 'Key regenerated' : 'Regenerate key?'"></h2>
+            <p class="subtitle" x-text="regenKey.key_alias || regenKey.key_name || 'Key'"></p>
+
+            <template x-if="regenStage !== 'done'">
+              <div>
+                <p class="warning">
+                  The previous key will be <strong>deleted</strong> and a new one created with the same name and
+                  settings (owner, team, budget, limits, models, metadata). Applications still using the old key
+                  will stop working immediately.
+                </p>
+                <p class="error" x-show="regenError" x-text="regenError" role="alert"></p>
+                <div class="modal-actions">
+                  <button type="button" @click="closeRegenModal()" :disabled="regenStage === 'working'">Cancel</button>
+                  <button type="button" class="primary danger" @click="confirmRegenerate()" :disabled="regenStage === 'working'" x-text="regenStage === 'working' ? 'Regenerating…' : 'Regenerate'"></button>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="regenStage === 'done'">
+              <div>
+                <p class="warning" x-show="regenWarning" x-text="regenWarning" role="alert"></p>
+                <p>
+                  The previous key has been deleted. Here is the new key —
+                  <strong>it will not be shown again</strong>:
+                </p>
+                <div class="token">
+                  <code x-text="newKeyValue"></code>
+                  <button type="button" @click="copyValue(newKeyValue)" x-text="copiedValue === newKeyValue ? 'Copied' : 'Copy'"></button>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="primary" @click="closeRegenModal()">Done</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -62,6 +62,14 @@ Alpine.js SPA, no router, no build-time templating:
 - Resolution strategy in `login.ts`: try `/team/list` first (one call for admins), then for any team_id still missing call `GET /team/info?team_id=<id>` per distinct id — this **works for team members** (returns `{team_info: {team_alias}}`). Both are best-effort; failure degrades to `—`/short ids, not an error banner.
 - Error shapes vary: LiteLLM uses `{"error": {"message"}}`, FastAPI validation uses `{"detail": ...}`, and some routes return `{"detail": {"error": "..."}}` — `extractErrorMessage` handles all three.
 
+### Regenerating keys (OSS "regenerate" simulation)
+
+- `POST /key/regenerate` exists but is **Enterprise-only** — the OSS proxy returns 500 "Regenerating Virtual Keys is an Enterprise feature".
+- The app simulates regeneration: `POST /key/delete` (old hash) then `POST /key/generate` with the old key's metadata copied (`buildRegenPayload` in `login.ts`): alias, owner, team, org, spend, budgets, duration, models, aliases, config, metadata, permissions, limits. Remaining validity is preserved by converting `expires` into `duration: "<seconds>s"` (the duration parser accepts `<n>s/m/h/d/w/mo`).
+- **Order is delete → generate**: key aliases are globally unique ("Key with alias ... already exists"), so the replacement cannot take the old name until the old key is deleted.
+- Deleting an already-deleted hash returns 404 `{"error":{"message":"{'error': 'No keys found'}"}}` — treated as success for retry-safety.
+- `user_id`/`organization_id` are only copied for non-internal_user sessions (internal users can't create keys for other users; omitting them makes the new key default to the caller). Same for **`allowed_routes`**: it's proxy-admin-only ("Only proxy admins can set `allowed_routes`"), so internal users get the `key_type` preset copied instead (e.g. `llm_api` → `llm_api_routes`).
+
 ## Other notes
 
 - Not a git repository (as of this writing).
