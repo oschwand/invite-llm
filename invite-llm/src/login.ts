@@ -307,11 +307,19 @@ export function loginForm() {
     },
 
     formatSpend(key: VirtualKey): string {
-      return `$${(key.spend ?? 0).toFixed(2)}`
+      return this.formatUsd(key.spend ?? 0)
     },
 
     formatBudget(key: VirtualKey): string {
-      return key.max_budget === null ? 'No limit' : `$${key.max_budget.toFixed(2)}`
+      return key.max_budget === null ? 'No limit' : this.formatUsd(key.max_budget)
+    },
+
+    formatUsd(value: number): string {
+      if (value > 0 && value < 0.0000005) return '<$0.000001'
+      let text = value.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')
+      if (!text.includes('.')) text += '.00'
+      else if (text.split('.')[1].length < 2) text += '0'
+      return `$${text}`
     },
 
     async copyValue(value: string) {
