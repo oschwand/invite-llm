@@ -20,8 +20,47 @@
           </dl>
           <div class="token">
             <code x-text="session.token.slice(0, 24) + '…'"></code>
-            <button type="button" @click="copyToken()" x-text="copied ? 'Copied' : 'Copy token'"></button>
+            <button type="button" @click="copyValue(session.token)" x-text="copiedValue === session.token ? 'Copied' : 'Copy token'"></button>
           </div>
+          <section class="keys">
+            <div class="keys-header">
+              <h2>Virtual keys <span class="count" x-text="keys.length"></span></h2>
+              <button type="button" class="small" @click="loadKeys()" :disabled="keysLoading" x-text="keysLoading ? 'Loading…' : 'Refresh'"></button>
+            </div>
+            <p class="error" x-show="keysError" x-text="keysError" role="alert"></p>
+            <p class="empty" x-show="keysLoading && keys.length === 0">Loading keys…</p>
+            <p class="empty" x-show="!keysLoading && !keysError && keys.length === 0">No virtual keys associated with this account.</p>
+            <div class="table-wrap" x-show="keys.length > 0">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Key</th>
+                    <th x-show="session.user_role !== 'internal_user'">Owner</th>
+                    <th>Team</th>
+                    <th>Spend</th>
+                    <th>Budget</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="key in keys" :key="key.token">
+                    <tr>
+                      <td x-text="key.key_alias || '(unnamed)'"></td>
+                      <td class="mono" x-text="key.key_name || '—'"></td>
+                      <td class="mono" x-show="session.user_role !== 'internal_user'" :title="key.user_id || ''" x-text="key.user_id ? key.user_id.slice(0, 8) + '…' : '—'"></td>
+                      <td class="wrap" :title="key.team_id || ''" x-text="teamName(key)"></td>
+                      <td x-text="formatSpend(key)"></td>
+                      <td x-text="formatBudget(key)"></td>
+                      <td x-text="formatExpiry(key)"></td>
+                      <td><span class="badge" :class="keyStatus(key)" x-text="keyStatus(key)"></span></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </section>
           <button type="button" class="primary" @click="logout()">Sign out</button>
         </section>
       </template>
