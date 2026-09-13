@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>invite-llm</title>
+  </head>
+  <body>
+    <main class="card" x-data="loginForm" x-cloak>
+      <template x-if="session">
+        <section>
+          <h1>Signed in</h1>
+          <p class="subtitle" x-text="session.user_email || session.user_id"></p>
+          <dl>
+            <div><dt>User ID</dt><dd x-text="session.user_id"></dd></div>
+            <div><dt>Role</dt><dd x-text="session.user_role || 'unknown'"></dd></div>
+            <div><dt>Session expires</dt><dd x-text="new Date(session.expires_at * 1000).toLocaleString()"></dd></div>
+            <div><dt>Server</dt><dd x-text="serverUrl"></dd></div>
+          </dl>
+          <div class="token">
+            <code x-text="session.token.slice(0, 24) + '…'"></code>
+            <button type="button" @click="copyToken()" x-text="copied ? 'Copied' : 'Copy token'"></button>
+          </div>
+          <button type="button" class="primary" @click="logout()">Sign out</button>
+        </section>
+      </template>
+      <template x-if="!session">
+        <section>
+          <h1>LiteLLM</h1>
+          <p class="subtitle">Sign in to the proxy server</p>
+          <form @submit.prevent="submit">
+            <label>
+              Server URL
+              <input type="url" x-model="serverUrl" spellcheck="false" required />
+            </label>
+            <label>
+              Username
+              <input type="text" x-model="username" autocomplete="username" required autofocus />
+            </label>
+            <label>
+              Password
+              <input type="password" x-model="password" autocomplete="current-password" required />
+            </label>
+            <p class="error" x-show="error" x-text="error" role="alert"></p>
+            <button class="primary" type="submit" :disabled="loading" x-text="loading ? 'Signing in…' : 'Sign in'"></button>
+          </form>
+        </section>
+      </template>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
