@@ -14,7 +14,8 @@
         <button type="button" class="banner-button" @click="logout()">Sign out</button>
       </div>
     </header>
-    <main class="card">
+    <div class="page">
+      <main class="card">
       <template x-if="session">
         <section>
           <h1>
@@ -50,15 +51,15 @@
                 <tbody>
                   <template x-for="key in keys" :key="key.token">
                     <tr>
-                      <td x-text="key.key_alias || '(unnamed)'"></td>
-                      <td class="mono" x-text="key.key_name || '—'"></td>
-                      <td class="mono" x-show="session.user_role !== 'internal_user'" :title="key.user_id || ''" x-text="key.user_id ? key.user_id.slice(0, 8) + '…' : '—'"></td>
-                      <td :title="key.team_id || ''" x-text="teamName(key)"></td>
-                      <td x-text="formatSpend(key)"></td>
-                      <td x-text="formatBudget(key)"></td>
-                      <td x-text="formatExpiry(key)"></td>
-                      <td><span class="badge" :class="keyStatus(key)" x-text="keyStatus(key)"></span></td>
-                      <td><button type="button" class="small" @click="openRegenModal(key)">Regenerate</button></td>
+                      <td data-label="Name" x-text="key.key_alias || '(unnamed)'"></td>
+                      <td class="mono" data-label="Key" x-text="key.key_name || '—'"></td>
+                      <td class="mono" data-label="Owner" x-show="session.user_role !== 'internal_user'" :title="key.user_id || ''" x-text="key.user_id ? key.user_id.slice(0, 8) + '…' : '—'"></td>
+                      <td data-label="Team" :title="key.team_id || ''" x-text="teamName(key)"></td>
+                      <td data-label="Spend" x-text="formatSpend(key)"></td>
+                      <td data-label="Budget" x-text="formatBudget(key)"></td>
+                      <td data-label="Expires" x-text="formatExpiry(key)"></td>
+                      <td data-label="Status"><span class="badge" :class="keyStatus(key)" x-text="keyStatus(key)"></span></td>
+                      <td data-label="Actions"><button type="button" class="small" @click="openRegenModal(key)">Regenerate</button></td>
                     </tr>
                   </template>
                 </tbody>
@@ -86,6 +87,7 @@
         </section>
       </template>
     </main>
+    </div>
 
     <div class="modal-backdrop" x-show="regenKey !== null" x-cloak @keydown.escape.window="closeRegenModal()">
       <div class="modal" @click.outside="closeRegenModal()">

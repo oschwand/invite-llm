@@ -71,7 +71,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .banner {
@@ -82,6 +81,16 @@ body {
   text-align: center;
   background: var(--accent-bg);
   border-bottom: 1px solid var(--accent-border);
+}
+
+.page {
+  box-sizing: border-box;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
 }
 
 .banner-title {
@@ -114,7 +123,7 @@ a.banner-button {
 }
 
 .card {
-  width: min(1100px, calc(100vw - 2rem));
+  width: min(1100px, 100%);
   margin: auto;
   padding: 2rem;
   background: var(--bg);
@@ -396,4 +405,62 @@ button.danger {
   color: #fff;
   background: var(--error);
   border-color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
+
+  .banner {
+    padding: 0.75rem 1rem;
+  }
+
+  .banner-actions {
+    position: static;
+    transform: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.6rem;
+  }
+
+  thead {
+    display: none;
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+    width: 100%;
+  }
+
+  tr {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0;
+    border: none;
+    text-align: right;
+  }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: 500;
+    color: var(--text);
+    text-align: left;
+  }
 }
