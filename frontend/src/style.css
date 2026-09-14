@@ -349,6 +349,17 @@ td code {
   white-space: nowrap;
 }
 
+.invite-cell a,
+.token a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.invite-cell a:hover,
+.token a:hover {
+  text-decoration: underline;
+}
+
 .link {
   padding: 0.15rem 0.45rem;
   font-size: 0.75rem;

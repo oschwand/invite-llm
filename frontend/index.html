@@ -103,7 +103,7 @@
                         </template>
                         <template x-if="teamInviteLink(team) !== ''">
                           <span class="invite-cell">
-                            <span class="mono" :title="teamInviteLink(team)" x-text="team.invite_code"></span>
+                            <a class="mono" :href="teamInviteLink(team)" target="_blank" rel="noopener" :title="teamInviteLink(team)" x-text="team.invite_code"></a>
                             <button type="button" class="link" @click="copyValue(teamInviteLink(team))" x-text="copiedValue === teamInviteLink(team) ? 'Copied' : 'Copy'"></button>
                           </span>
                         </template>
@@ -147,7 +147,7 @@
                   <strong x-text="createdTeamName"></strong>:
                 </p>
                 <div class="token">
-                  <code x-text="createdInviteLink"></code>
+                  <code><a :href="createdInviteLink" target="_blank" rel="noopener" x-text="createdInviteLink"></a></code>
                   <button type="button" @click="copyValue(createdInviteLink)" x-text="copiedValue === createdInviteLink ? 'Copied' : 'Copy'"></button>
                 </div>
                 <div class="modal-actions">
