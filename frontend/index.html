@@ -223,6 +223,89 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" x-show="inviteTeamId !== ''" x-cloak @keydown.escape.window="closeInviteModal()">
+      <div class="modal" @click.outside="closeInviteModal()">
+        <template x-if="inviteTeamId !== ''">
+          <div>
+            <h2>Team invitation</h2>
+            <p class="subtitle">
+              You have been invited to join
+              <strong x-text="inviteTeamName || inviteTeamId"></strong>.
+            </p>
+            <dl>
+              <div>
+                <dt>Default key budget</dt>
+                <dd x-text="inviteMemberBudget === null ? '—' : formatUsd(inviteMemberBudget)"></dd>
+              </div>
+            </dl>
+
+            <template x-if="inviteStage === 'done'">
+              <div>
+                <p class="empty" x-show="inviteKeyValue !== ''">
+                  Invite accepted. Here is your new virtual key —
+                  <strong>it will not be shown again</strong>:
+                </p>
+                <p class="empty" x-show="inviteKeyValue === ''">Invite accepted.</p>
+                <div class="token" x-show="inviteKeyValue !== ''">
+                  <code x-text="inviteKeyValue"></code>
+                  <button type="button" @click="copyValue(inviteKeyValue)" x-text="copiedValue === inviteKeyValue ? 'Copied' : 'Copy'"></button>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="primary" @click="closeInviteModal()">Done</button>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="inviteStage !== 'done' && session">
+              <div>
+                <p class="error" x-show="inviteError" x-text="inviteError" role="alert"></p>
+                <div class="modal-actions">
+                  <button type="button" class="primary" :disabled="inviteWorking" @click="acceptInvite()" x-text="inviteWorking ? 'Accepting…' : 'Accept the invite and create virtual key'"></button>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="inviteStage !== 'done' && !session">
+              <div>
+                <div class="tabs">
+                  <button type="button" :class="{ active: inviteTab === 'signin' }" @click="inviteTab = 'signin'">Sign in</button>
+                  <button type="button" :class="{ active: inviteTab === 'create' }" @click="inviteTab = 'create'">Create account</button>
+                </div>
+                <form x-show="inviteTab === 'signin'" @submit.prevent="submit()">
+                  <label>
+                    Email
+                    <input type="email" x-model="username" autocomplete="email" required />
+                  </label>
+                  <label>
+                    Password
+                    <input type="password" x-model="password" autocomplete="current-password" required />
+                  </label>
+                  <p class="error" x-show="error" x-text="error" role="alert"></p>
+                  <button class="primary" type="submit" :disabled="loading" x-text="loading ? 'Signing in…' : 'Sign in'"></button>
+                </form>
+                <form x-show="inviteTab === 'create'" @submit.prevent="createInviteAccount()">
+                  <label>
+                    Full name
+                    <input type="text" x-model="inviteFullName" autocomplete="name" required />
+                  </label>
+                  <label>
+                    Email
+                    <input type="email" x-model="inviteEmail" autocomplete="email" required />
+                  </label>
+                  <label>
+                    Password
+                    <input type="password" x-model="invitePassword" autocomplete="new-password" required />
+                  </label>
+                  <p class="error" x-show="inviteError" x-text="inviteError" role="alert"></p>
+                  <button class="primary" type="submit" :disabled="inviteWorking" x-text="inviteWorking ? 'Creating…' : 'Create account and join'"></button>
+                </form>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

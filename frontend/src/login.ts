@@ -45,6 +45,10 @@ type RegenStage = 'confirm' | 'working' | 'done'
 
 type View = 'keys' | 'teams' | 'create-team'
 
+type InviteTab = 'signin' | 'create'
+
+type InviteStage = 'idle' | 'done'
+
 interface Team {
   team_id: string
   team_alias: string
@@ -187,6 +191,19 @@ export function loginForm() {
     createdTeamName: '',
     createdInviteLink: '',
 
+    inviteTeamId: '',
+    inviteCode: '',
+    inviteTeamName: '',
+    inviteMemberBudget: null as number | null,
+    inviteTab: 'signin' as InviteTab,
+    inviteStage: 'idle' as InviteStage,
+    inviteWorking: false,
+    inviteError: '',
+    inviteKeyValue: '',
+    inviteEmail: '',
+    invitePassword: '',
+    inviteFullName: '',
+
     regenKey: null as VirtualKey | null,
     regenStage: 'confirm' as RegenStage,
     regenError: '',
@@ -198,6 +215,11 @@ export function loginForm() {
     },
 
     init() {
+      const inviteMatch = window.location.pathname.match(/^\/invite\/([^/]+)\/([^/]+)\/?$/)
+      if (inviteMatch !== null) {
+        this.inviteTeamId = decodeURIComponent(inviteMatch[1])
+        this.inviteCode = decodeURIComponent(inviteMatch[2])
+      }
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw === null) return
       try {
@@ -210,6 +232,7 @@ export function loginForm() {
         this.session = session
         void this.loadKeys()
         void this.loadUserAlias()
+        void this.loadInviteTeamInfo()
       } catch {
         localStorage.removeItem(STORAGE_KEY)
       }
@@ -241,6 +264,7 @@ export function loginForm() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: session.token }))
         void this.loadKeys()
         void this.loadUserAlias()
+        void this.loadInviteTeamInfo()
       } catch {
         this.error = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
       } finally {
@@ -336,6 +360,104 @@ export function loginForm() {
       )
     },
 
+    closeInviteModal() {
+      this.inviteTeamId = ''
+      this.inviteCode = ''
+      this.inviteTeamName = ''
+      this.inviteMemberBudget = null
+      this.inviteTab = 'signin'
+      this.inviteStage = 'idle'
+      this.inviteError = ''
+      this.inviteKeyValue = ''
+      this.inviteEmail = ''
+      this.invitePassword = ''
+      this.inviteFullName = ''
+      window.history.replaceState(null, '', '/')
+    },
+
+    inviteResponseKey(body: unknown): string {
+      const data = body as { key?: unknown; token?: unknown; api_key?: unknown } | null
+      if (typeof data?.key === 'string') return data.key
+      if (typeof data?.token === 'string') return data.token
+      if (typeof data?.api_key === 'string') return data.api_key
+      return ''
+    },
+
+    async acceptInvite() {
+      const session = this.session
+      if (session === null || this.inviteWorking) return
+      this.inviteWorking = true
+      this.inviteError = ''
+      try {
+        const response = await fetch(window.location.href, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.api_key}`, 'Content-Type': 'application/json' },
+        })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          this.inviteError = extractErrorMessage(body) ?? `Failed to accept the invite (HTTP ${response.status})`
+          return
+        }
+        this.inviteKeyValue = this.inviteResponseKey(body)
+        this.inviteStage = 'done'
+        void this.loadKeys()
+      } catch {
+        this.inviteError = `Could not reach the invite server at ${window.location.origin}. Is it running?`
+      } finally {
+        this.inviteWorking = false
+      }
+    },
+
+    async createInviteAccount() {
+      if (this.inviteWorking) return
+      this.inviteWorking = true
+      this.inviteError = ''
+      try {
+        const response = await fetch(window.location.href, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: this.inviteFullName.trim(),
+            email: this.inviteEmail.trim(),
+            password: this.invitePassword,
+          }),
+        })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          this.inviteError = extractErrorMessage(body) ?? `Failed to create the account (HTTP ${response.status})`
+          return
+        }
+        this.inviteKeyValue = this.inviteResponseKey(body)
+        this.inviteStage = 'done'
+      } catch {
+        this.inviteError = `Could not reach the invite server at ${window.location.origin}. Is it running?`
+      } finally {
+        this.inviteWorking = false
+      }
+    },
+
+    async loadInviteTeamInfo() {
+      const session = this.session
+      if (session === null || this.inviteTeamId === '') return
+      try {
+        const base = this.serverUrl.replace(/\/+$/, '')
+        const response = await fetch(`${base}/team/info?team_id=${encodeURIComponent(this.inviteTeamId)}`, {
+          headers: { Authorization: `Bearer ${session.api_key}` },
+        })
+        if (!response.ok) return
+        const body: unknown = await response.json().catch(() => null)
+        const info = (body as { team_info?: Record<string, unknown> } | null)?.team_info
+        if (typeof info !== 'object' || info === null) return
+        const alias = optionalString(info, 'team_alias')
+        if (alias !== null && alias !== '') this.inviteTeamName = alias
+        const budgetTable = info.team_member_budget_table
+        const rawBudget = typeof budgetTable === 'object' && budgetTable !== null ? (budgetTable as Record<string, unknown>).max_budget : undefined
+        this.inviteMemberBudget = typeof rawBudget === 'number' ? rawBudget : null
+      } catch {
+        // unresolved name/budget simply fall back in the modal
+      }
+    },
+
     showTeams() {
       this.view = 'teams'
       if (this.teams.length === 0 || this.teamsError !== '') void this.loadTeams()
@@ -360,7 +482,10 @@ export function loginForm() {
         this.createTeamError = 'Team name is required.'
         return
       }
-      const payload: Record<string, unknown> = { team_alias: name }
+      const payload: Record<string, unknown> = {
+        team_alias: name,
+        team_member_permissions: ['/key/generate', '/key/delete'],
+      }
       const budgets: Array<[string, string, string]> = [
         ['team_member_budget', 'Team member budget', this.newTeamMemberBudget],
         ['max_budget', 'Max team budget', this.newTeamMaxBudget],
@@ -397,7 +522,7 @@ export function loginForm() {
         if (inviteCode !== null) {
           this.createdTeamName = name
           this.createdInviteLink =
-            teamId !== '' ? `${window.location.origin}/${teamId}/${inviteCode}` : inviteCode
+            teamId !== '' ? `${window.location.origin}/invite/${teamId}/${inviteCode}` : inviteCode
         } else {
           this.view = 'teams'
         }
@@ -517,7 +642,7 @@ export function loginForm() {
 
     teamInviteLink(team: Team): string {
       if (team.invite_code === null || team.invite_code === '') return ''
-      return `${window.location.origin}/${team.team_id}/${team.invite_code}`
+      return `${window.location.origin}/invite/${team.team_id}/${team.invite_code}`
     },
 
     expiryTime(key: VirtualKey): number | null {

@@ -360,6 +360,23 @@ td code {
   text-decoration: underline;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tabs button {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.tabs button.active {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  font-weight: 600;
+}
+
 .link {
   padding: 0.15rem 0.45rem;
   font-size: 0.75rem;
