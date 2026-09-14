@@ -49,6 +49,7 @@ interface Team {
   team_id: string
   team_alias: string
   key_count: number | null
+  max_budget: number | null
   member_budget: number | null
   spend: number | null
 }
@@ -412,6 +413,7 @@ export function loginForm() {
               team_id: team.team_id,
               team_alias: team.team_alias,
               key_count: info?.key_count ?? null,
+              max_budget: info?.max_budget ?? null,
               member_budget: info?.member_budget ?? null,
               spend: info?.spend ?? null,
             }
@@ -428,7 +430,7 @@ export function loginForm() {
       auth: Record<string, string>,
       base: string,
       teamId: string,
-    ): Promise<{ key_count: number | null; member_budget: number | null; spend: number | null } | null> {
+    ): Promise<{ key_count: number | null; max_budget: number | null; member_budget: number | null; spend: number | null } | null> {
       const response = await fetch(`${base}/team/info?team_id=${encodeURIComponent(teamId)}`, { headers: auth })
       if (!response.ok) return null
       const body: unknown = await response.json().catch(() => null)
@@ -438,6 +440,7 @@ export function loginForm() {
       const rawBudget = typeof budgetTable === 'object' && budgetTable !== null ? (budgetTable as Record<string, unknown>).max_budget : undefined
       return {
         key_count: Array.isArray(info.keys) ? info.keys.length : null,
+        max_budget: optionalNumber(info.team_info, 'max_budget'),
         member_budget: typeof rawBudget === 'number' ? rawBudget : null,
         spend: optionalNumber(info.team_info, 'spend'),
       }
@@ -467,6 +470,10 @@ export function loginForm() {
 
     teamKeyCount(team: Team): string {
       return team.key_count === null ? '—' : String(team.key_count)
+    },
+
+    teamBudget(team: Team): string {
+      return team.max_budget === null ? '—' : this.formatUsd(team.max_budget)
     },
 
     teamMemberBudget(team: Team): string {

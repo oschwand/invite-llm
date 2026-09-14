@@ -83,6 +83,7 @@
                   <tr>
                     <th>Name</th>
                     <th>Keys</th>
+                    <th>Team budget</th>
                     <th>Member budget</th>
                     <th>Spend</th>
                   </tr>
@@ -92,6 +93,7 @@
                     <tr>
                       <td data-label="Name" x-text="team.team_alias || '(unnamed)'"></td>
                       <td data-label="Keys" x-text="teamKeyCount(team)"></td>
+                      <td data-label="Team budget" x-text="teamBudget(team)"></td>
                       <td data-label="Member budget" x-text="teamMemberBudget(team)"></td>
                       <td data-label="Spend" x-text="teamSpend(team)"></td>
                     </tr>
