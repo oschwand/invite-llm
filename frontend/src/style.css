@@ -122,6 +122,12 @@ a.banner-button {
   text-decoration: none;
 }
 
+.banner-button.active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 .card {
   width: min(1100px, 100%);
   margin: auto;

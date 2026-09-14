@@ -43,6 +43,16 @@ interface VirtualKey {
 
 type RegenStage = 'confirm' | 'working' | 'done'
 
+type View = 'keys' | 'teams'
+
+interface Team {
+  team_id: string
+  team_alias: string
+  key_count: number | null
+  member_budget: number | null
+  spend: number | null
+}
+
 interface ErrorBody {
   error?: { message?: string } | string
   detail?: { message?: string; error?: string } | string
@@ -154,11 +164,20 @@ export function loginForm() {
     keysLoading: false,
     keysError: '',
 
+    teams: [] as Team[],
+    view: 'keys' as View,
+    teamsLoading: false,
+    teamsError: '',
+
     regenKey: null as VirtualKey | null,
     regenStage: 'confirm' as RegenStage,
     regenError: '',
     regenWarning: '',
     newKeyValue: '',
+
+    get isAdmin(): boolean {
+      return this.session !== null && this.session.user_role !== 'internal_user'
+    },
 
     init() {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -217,6 +236,9 @@ export function loginForm() {
       this.teamNames = {}
       this.userAlias = ''
       this.keysError = ''
+      this.teams = []
+      this.teamsError = ''
+      this.view = 'keys'
       this.closeRegenModal()
       localStorage.removeItem(STORAGE_KEY)
     },
@@ -289,6 +311,74 @@ export function loginForm() {
       )
     },
 
+    showTeams() {
+      this.view = 'teams'
+      if (this.teams.length === 0 || this.teamsError !== '') void this.loadTeams()
+    },
+
+    async loadTeams() {
+      const session = this.session
+      if (session === null) return
+      this.teamsError = ''
+      this.teamsLoading = true
+      try {
+        const base = this.serverUrl.replace(/\/+$/, '')
+        const auth = { Authorization: `Bearer ${session.api_key}` }
+        const response = await fetch(`${base}/team/list`, { headers: auth })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          this.teamsError = extractErrorMessage(body) ?? `Failed to load teams (HTTP ${response.status})`
+          return
+        }
+        const rows = Array.isArray(body) ? body : []
+        const listed = rows
+          .filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null)
+          .map((row) => ({
+            team_id: String(row.team_id ?? ''),
+            team_alias: optionalString(row, 'team_alias') ?? '',
+          }))
+        const stats = await Promise.allSettled(
+          listed.map((team) => this.fetchTeamStats(auth, base, team.team_id)),
+        )
+        this.teams = listed
+          .map((team, index): Team => {
+            const stat = stats[index]
+            const info = stat.status === 'fulfilled' ? stat.value : null
+            return {
+              team_id: team.team_id,
+              team_alias: team.team_alias,
+              key_count: info?.key_count ?? null,
+              member_budget: info?.member_budget ?? null,
+              spend: info?.spend ?? null,
+            }
+          })
+          .sort((a, b) => a.team_alias.localeCompare(b.team_alias))
+      } catch {
+        this.teamsError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
+      } finally {
+        this.teamsLoading = false
+      }
+    },
+
+    async fetchTeamStats(
+      auth: Record<string, string>,
+      base: string,
+      teamId: string,
+    ): Promise<{ key_count: number | null; member_budget: number | null; spend: number | null } | null> {
+      const response = await fetch(`${base}/team/info?team_id=${encodeURIComponent(teamId)}`, { headers: auth })
+      if (!response.ok) return null
+      const body: unknown = await response.json().catch(() => null)
+      const info = body as { team_info?: Record<string, unknown>; keys?: unknown[] } | null
+      if (info === null || typeof info.team_info !== 'object' || info.team_info === null) return null
+      const budgetTable = info.team_info.team_member_budget_table
+      const rawBudget = typeof budgetTable === 'object' && budgetTable !== null ? (budgetTable as Record<string, unknown>).max_budget : undefined
+      return {
+        key_count: Array.isArray(info.keys) ? info.keys.length : null,
+        member_budget: typeof rawBudget === 'number' ? rawBudget : null,
+        spend: optionalNumber(info.team_info, 'spend'),
+      }
+    },
+
     async loadUserAlias() {
       const session = this.session
       if (session === null) return
@@ -309,6 +399,18 @@ export function loginForm() {
     teamName(key: VirtualKey): string {
       if (key.team_id === null) return '—'
       return this.teamNames[key.team_id] ?? `${key.team_id.slice(0, 8)}…`
+    },
+
+    teamKeyCount(team: Team): string {
+      return team.key_count === null ? '—' : String(team.key_count)
+    },
+
+    teamMemberBudget(team: Team): string {
+      return team.member_budget === null ? '—' : this.formatUsd(team.member_budget)
+    },
+
+    teamSpend(team: Team): string {
+      return team.spend === null ? '—' : this.formatUsd(team.spend)
     },
 
     expiryTime(key: VirtualKey): number | null {

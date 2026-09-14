@@ -10,6 +10,8 @@
     <header class="banner">
       <span class="banner-title">Invite LiteLLM</span>
       <div class="banner-actions" x-show="session">
+        <button type="button" class="banner-button" :class="{ active: view === 'keys' }" @click="view = 'keys'">Virtual keys</button>
+        <button type="button" class="banner-button" :class="{ active: view === 'teams' }" x-show="isAdmin" @click="showTeams()">Teams</button>
         <a class="banner-button" :href="serverUrl + '/ui'" target="_blank" rel="noopener">Go to LiteLLM Dashboard</a>
         <button type="button" class="banner-button" @click="logout()">Sign out</button>
       </div>
@@ -25,7 +27,7 @@
           <dl>
             <div><dt>Role</dt><dd x-text="session.user_role || 'unknown'"></dd></div>
           </dl>
-          <section class="keys">
+          <section class="keys" x-show="view === 'keys'">
             <div class="keys-header">
               <h2>Virtual keys <span class="count" x-text="keys.length"></span></h2>
               <button type="button" class="small" @click="loadKeys()" :disabled="keysLoading" x-text="keysLoading ? 'Loading…' : 'Refresh'"></button>
@@ -60,6 +62,37 @@
                       <td data-label="Expires" x-text="formatExpiry(key)"></td>
                       <td data-label="Status"><span class="badge" :class="keyStatus(key)" x-text="keyStatus(key)"></span></td>
                       <td data-label="Actions"><button type="button" class="small" @click="openRegenModal(key)">Regenerate</button></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="keys" x-show="view === 'teams'" x-cloak>
+            <div class="keys-header">
+              <h2>Teams <span class="count" x-text="teams.length"></span></h2>
+              <button type="button" class="small" @click="loadTeams()" :disabled="teamsLoading" x-text="teamsLoading ? 'Loading…' : 'Refresh'"></button>
+            </div>
+            <p class="error" x-show="teamsError" x-text="teamsError" role="alert"></p>
+            <p class="empty" x-show="teamsLoading && teams.length === 0">Loading teams…</p>
+            <p class="empty" x-show="!teamsLoading && !teamsError && teams.length === 0">No teams found on this server.</p>
+            <div class="table-wrap" x-show="teams.length > 0">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Keys</th>
+                    <th>Member budget</th>
+                    <th>Spend</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="team in teams" :key="team.team_id">
+                    <tr>
+                      <td data-label="Name" x-text="team.team_alias || '(unnamed)'"></td>
+                      <td data-label="Keys" x-text="teamKeyCount(team)"></td>
+                      <td data-label="Member budget" x-text="teamMemberBudget(team)"></td>
+                      <td data-label="Spend" x-text="teamSpend(team)"></td>
                     </tr>
                   </template>
                 </tbody>

@@ -65,6 +65,8 @@ Alpine.js SPA, no router, no build-time templating:
 - `/team/list` is **admin-only**: internal users get 400 `{"detail":{"error":"Only admin users can query all teams/other teams..."}}`. It returns a **plain JSON array** of `{team_id, team_alias}`. `/key/list` has no `expand=team`.
 - Resolution strategy in `login.ts`: try `/team/list` first (one call for admins), then for any team_id still missing call `GET /team/info?team_id=<id>` per distinct id — this **works for team members** (returns `{team_info: {team_alias}}`). Both are best-effort; failure degrades to `—`/short ids, not an error banner.
 - Error shapes vary: LiteLLM uses `{"error": {"message"}}`, FastAPI validation uses `{"detail": ...}`, and some routes return `{"detail": {"error": "..."}}` — `extractErrorMessage` handles all three.
+- The banner has view-switching buttons: **Virtual keys** (everyone) and **Teams** (admin sessions only, JWT `user_role !== 'internal_user'`, exposed as the `isAdmin` getter). They toggle the `view` state (`'keys' | 'teams'`) and swap the section inside the card; `showTeams()` lazy-loads the team list, and `logout()` resets the view.
+- Teams view columns: Name, Keys, Member budget, Spend (Team ID is intentionally hidden). `/team/list` returns only `{team_id, team_alias}`, so `loadTeams` enriches each row via `GET /team/info?team_id=<id>` (fetched in parallel, best-effort → `—` on failure): key count = length of the response's `keys` array (team's own keys, tokens stripped server-side), member budget = `team_info.team_member_budget_table.max_budget` (the "Team Member Budget" field, stored as a separate budget row linked via `metadata.team_member_budget_id`; null when unset), spend = `team_info.spend` (team total, USD, formatted with `formatUsd`).
 
 ### Regenerating keys (OSS "regenerate" simulation)
 
@@ -76,5 +78,5 @@ Alpine.js SPA, no router, no build-time templating:
 
 ## Other notes
 
-- Not a git repository (as of this writing).
+- Part of the parent git repository (the root repo tracks `frontend/` directly; no separate repo here).
 - A live LiteLLM server for testing runs at `http://localhost:4000` (swagger at `/`, openapi at `/openapi.json`).
