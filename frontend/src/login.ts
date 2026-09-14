@@ -52,6 +52,7 @@ interface Team {
   max_budget: number | null
   member_budget: number | null
   spend: number | null
+  invite_code: string | null
 }
 
 interface ErrorBody {
@@ -71,6 +72,13 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   } catch {
     return null
   }
+}
+
+function randomInviteCode(length = 8): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const values = new Uint32Array(length)
+  crypto.getRandomValues(values)
+  return Array.from(values, (value) => chars[value % chars.length]).join('')
 }
 
 function sessionFromToken(token: string): Session | null {
@@ -173,8 +181,11 @@ export function loginForm() {
     newTeamName: '',
     newTeamMemberBudget: '',
     newTeamMaxBudget: '',
+    newTeamInviteLink: false,
     creatingTeam: false,
     createTeamError: '',
+    createdTeamName: '',
+    createdInviteLink: '',
 
     regenKey: null as VirtualKey | null,
     regenStage: 'confirm' as RegenStage,
@@ -248,7 +259,10 @@ export function loginForm() {
       this.newTeamName = ''
       this.newTeamMemberBudget = ''
       this.newTeamMaxBudget = ''
+      this.newTeamInviteLink = false
       this.createTeamError = ''
+      this.createdTeamName = ''
+      this.createdInviteLink = ''
       this.view = 'keys'
       this.closeRegenModal()
       localStorage.removeItem(STORAGE_KEY)
@@ -332,7 +346,10 @@ export function loginForm() {
       this.newTeamName = ''
       this.newTeamMemberBudget = ''
       this.newTeamMaxBudget = ''
+      this.newTeamInviteLink = false
       this.createTeamError = ''
+      this.createdTeamName = ''
+      this.createdInviteLink = ''
     },
 
     async createTeam() {
@@ -358,6 +375,8 @@ export function loginForm() {
         }
         payload[field] = value
       }
+      const inviteCode = this.newTeamInviteLink ? randomInviteCode() : null
+      if (inviteCode !== null) payload.metadata = { invite_code: inviteCode }
       this.createTeamError = ''
       this.creatingTeam = true
       try {
@@ -372,8 +391,16 @@ export function loginForm() {
           this.createTeamError = extractErrorMessage(body) ?? `Failed to create team (HTTP ${response.status})`
           return
         }
-        this.view = 'teams'
+        const rawTeamId = (body as { team_id?: unknown } | null)?.team_id
+        const teamId = typeof rawTeamId === 'string' ? rawTeamId : ''
         void this.loadTeams()
+        if (inviteCode !== null) {
+          this.createdTeamName = name
+          this.createdInviteLink =
+            teamId !== '' ? `${window.location.origin}/${teamId}/${inviteCode}` : inviteCode
+        } else {
+          this.view = 'teams'
+        }
       } catch {
         this.createTeamError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
       } finally {
@@ -416,6 +443,7 @@ export function loginForm() {
               max_budget: info?.max_budget ?? null,
               member_budget: info?.member_budget ?? null,
               spend: info?.spend ?? null,
+              invite_code: info?.invite_code ?? null,
             }
           })
           .sort((a, b) => a.team_alias.localeCompare(b.team_alias))
@@ -430,7 +458,7 @@ export function loginForm() {
       auth: Record<string, string>,
       base: string,
       teamId: string,
-    ): Promise<{ key_count: number | null; max_budget: number | null; member_budget: number | null; spend: number | null } | null> {
+    ): Promise<{ key_count: number | null; max_budget: number | null; member_budget: number | null; spend: number | null; invite_code: string | null } | null> {
       const response = await fetch(`${base}/team/info?team_id=${encodeURIComponent(teamId)}`, { headers: auth })
       if (!response.ok) return null
       const body: unknown = await response.json().catch(() => null)
@@ -438,11 +466,14 @@ export function loginForm() {
       if (info === null || typeof info.team_info !== 'object' || info.team_info === null) return null
       const budgetTable = info.team_info.team_member_budget_table
       const rawBudget = typeof budgetTable === 'object' && budgetTable !== null ? (budgetTable as Record<string, unknown>).max_budget : undefined
+      const metadata = optionalRecord(info.team_info, 'metadata')
+      const inviteCode = metadata !== null && typeof metadata.invite_code === 'string' ? metadata.invite_code : null
       return {
         key_count: Array.isArray(info.keys) ? info.keys.length : null,
         max_budget: optionalNumber(info.team_info, 'max_budget'),
         member_budget: typeof rawBudget === 'number' ? rawBudget : null,
         spend: optionalNumber(info.team_info, 'spend'),
+        invite_code: inviteCode,
       }
     },
 
@@ -482,6 +513,11 @@ export function loginForm() {
 
     teamSpend(team: Team): string {
       return team.spend === null ? '—' : this.formatUsd(team.spend)
+    },
+
+    teamInviteLink(team: Team): string {
+      if (team.invite_code === null || team.invite_code === '') return ''
+      return `${window.location.origin}/${team.team_id}/${team.invite_code}`
     },
 
     expiryTime(key: VirtualKey): number | null {

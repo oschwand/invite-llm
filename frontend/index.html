@@ -86,6 +86,7 @@
                     <th>Team budget</th>
                     <th>Member budget</th>
                     <th>Spend</th>
+                    <th>Invite link</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -96,6 +97,17 @@
                       <td data-label="Team budget" x-text="teamBudget(team)"></td>
                       <td data-label="Member budget" x-text="teamMemberBudget(team)"></td>
                       <td data-label="Spend" x-text="teamSpend(team)"></td>
+                      <td data-label="Invite link">
+                        <template x-if="teamInviteLink(team) === ''">
+                          <span>—</span>
+                        </template>
+                        <template x-if="teamInviteLink(team) !== ''">
+                          <span class="invite-cell">
+                            <span class="mono" :title="teamInviteLink(team)" x-text="team.invite_code"></span>
+                            <button type="button" class="link" @click="copyValue(teamInviteLink(team))" x-text="copiedValue === teamInviteLink(team) ? 'Copied' : 'Copy'"></button>
+                          </span>
+                        </template>
+                      </td>
                     </tr>
                   </template>
                 </tbody>
@@ -106,22 +118,44 @@
             <div class="keys-header">
               <h2>Create a new team</h2>
             </div>
-            <form @submit.prevent="createTeam()">
-              <label>
-                Team name
-                <input type="text" x-model="newTeamName" required />
-              </label>
-              <label>
-                Team member budget (USD, optional)
-                <input type="number" x-model="newTeamMemberBudget" step="any" inputmode="decimal" placeholder="Default budget given to each team member's keys" />
-              </label>
-              <label>
-                Max team budget (USD, optional)
-                <input type="number" x-model="newTeamMaxBudget" step="any" inputmode="decimal" placeholder="Total spend limit for the whole team" />
-              </label>
-              <p class="error" x-show="createTeamError" x-text="createTeamError" role="alert"></p>
-              <button class="primary" type="submit" :disabled="creatingTeam" x-text="creatingTeam ? 'Creating…' : 'Create team'"></button>
-            </form>
+            <template x-if="createdInviteLink === ''">
+              <form @submit.prevent="createTeam()">
+                <label>
+                  Team name
+                  <input type="text" x-model="newTeamName" required />
+                </label>
+                <label>
+                  Team member budget (USD, optional)
+                  <input type="number" x-model="newTeamMemberBudget" step="any" inputmode="decimal" placeholder="Default budget given to each team member's keys" />
+                </label>
+                <label>
+                  Max team budget (USD, optional)
+                  <input type="number" x-model="newTeamMaxBudget" step="any" inputmode="decimal" placeholder="Total spend limit for the whole team" />
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" x-model="newTeamInviteLink" />
+                  Create invite link
+                </label>
+                <p class="error" x-show="createTeamError" x-text="createTeamError" role="alert"></p>
+                <button class="primary" type="submit" :disabled="creatingTeam" x-text="creatingTeam ? 'Creating…' : 'Create team'"></button>
+              </form>
+            </template>
+            <template x-if="createdInviteLink !== ''">
+              <div>
+                <p class="empty">
+                  Team created. Share this invite link — people can use it to join
+                  <strong x-text="createdTeamName"></strong>:
+                </p>
+                <div class="token">
+                  <code x-text="createdInviteLink"></code>
+                  <button type="button" @click="copyValue(createdInviteLink)" x-text="copiedValue === createdInviteLink ? 'Copied' : 'Copy'"></button>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" @click="showCreateTeam()">Create another team</button>
+                  <button type="button" class="primary" @click="view = 'teams'">View teams</button>
+                </div>
+              </div>
+            </template>
           </section>
         </section>
       </template>
