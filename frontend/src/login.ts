@@ -43,7 +43,7 @@ interface VirtualKey {
 
 type RegenStage = 'confirm' | 'working' | 'done'
 
-type View = 'keys' | 'teams'
+type View = 'keys' | 'teams' | 'create-team'
 
 interface Team {
   team_id: string
@@ -169,6 +169,12 @@ export function loginForm() {
     teamsLoading: false,
     teamsError: '',
 
+    newTeamName: '',
+    newTeamMemberBudget: '',
+    newTeamMaxBudget: '',
+    creatingTeam: false,
+    createTeamError: '',
+
     regenKey: null as VirtualKey | null,
     regenStage: 'confirm' as RegenStage,
     regenError: '',
@@ -238,6 +244,10 @@ export function loginForm() {
       this.keysError = ''
       this.teams = []
       this.teamsError = ''
+      this.newTeamName = ''
+      this.newTeamMemberBudget = ''
+      this.newTeamMaxBudget = ''
+      this.createTeamError = ''
       this.view = 'keys'
       this.closeRegenModal()
       localStorage.removeItem(STORAGE_KEY)
@@ -314,6 +324,60 @@ export function loginForm() {
     showTeams() {
       this.view = 'teams'
       if (this.teams.length === 0 || this.teamsError !== '') void this.loadTeams()
+    },
+
+    showCreateTeam() {
+      this.view = 'create-team'
+      this.newTeamName = ''
+      this.newTeamMemberBudget = ''
+      this.newTeamMaxBudget = ''
+      this.createTeamError = ''
+    },
+
+    async createTeam() {
+      const session = this.session
+      if (session === null || this.creatingTeam) return
+      const name = this.newTeamName.trim()
+      if (name === '') {
+        this.createTeamError = 'Team name is required.'
+        return
+      }
+      const payload: Record<string, unknown> = { team_alias: name }
+      const budgets: Array<[string, string, string]> = [
+        ['team_member_budget', 'Team member budget', this.newTeamMemberBudget],
+        ['max_budget', 'Max team budget', this.newTeamMaxBudget],
+      ]
+      for (const [field, label, raw] of budgets) {
+        const trimmed = raw.trim()
+        if (trimmed === '') continue
+        const value = Number(trimmed)
+        if (!Number.isFinite(value) || value <= 0) {
+          this.createTeamError = `${label} must be a positive amount in USD.`
+          return
+        }
+        payload[field] = value
+      }
+      this.createTeamError = ''
+      this.creatingTeam = true
+      try {
+        const base = this.serverUrl.replace(/\/+$/, '')
+        const response = await fetch(`${base}/team/new`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.api_key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          this.createTeamError = extractErrorMessage(body) ?? `Failed to create team (HTTP ${response.status})`
+          return
+        }
+        this.view = 'teams'
+        void this.loadTeams()
+      } catch {
+        this.createTeamError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
+      } finally {
+        this.creatingTeam = false
+      }
     },
 
     async loadTeams() {

@@ -12,6 +12,7 @@
       <div class="banner-actions" x-show="session">
         <button type="button" class="banner-button" :class="{ active: view === 'keys' }" @click="view = 'keys'">Virtual keys</button>
         <button type="button" class="banner-button" :class="{ active: view === 'teams' }" x-show="isAdmin" @click="showTeams()">Teams</button>
+        <button type="button" class="banner-button" :class="{ active: view === 'create-team' }" x-show="isAdmin" @click="showCreateTeam()">Create team</button>
         <a class="banner-button" :href="serverUrl + '/ui'" target="_blank" rel="noopener">Go to LiteLLM Dashboard</a>
         <button type="button" class="banner-button" @click="logout()">Sign out</button>
       </div>
@@ -98,6 +99,27 @@
                 </tbody>
               </table>
             </div>
+          </section>
+          <section class="keys" x-show="view === 'create-team'" x-cloak>
+            <div class="keys-header">
+              <h2>Create a new team</h2>
+            </div>
+            <form @submit.prevent="createTeam()">
+              <label>
+                Team name
+                <input type="text" x-model="newTeamName" required />
+              </label>
+              <label>
+                Team member budget (USD, optional)
+                <input type="number" x-model="newTeamMemberBudget" step="any" inputmode="decimal" placeholder="Default budget given to each team member's keys" />
+              </label>
+              <label>
+                Max team budget (USD, optional)
+                <input type="number" x-model="newTeamMaxBudget" step="any" inputmode="decimal" placeholder="Total spend limit for the whole team" />
+              </label>
+              <p class="error" x-show="createTeamError" x-text="createTeamError" role="alert"></p>
+              <button class="primary" type="submit" :disabled="creatingTeam" x-text="creatingTeam ? 'Creating…' : 'Create team'"></button>
+            </form>
           </section>
         </section>
       </template>
