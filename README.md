@@ -48,14 +48,14 @@ uv run invite-litellm
 
 ### Docker
 
-With Docker (multi-stage image: builds the frontend, bundles the backend):
+A prebuilt multi-arch image (amd64/arm64) is published on
+[GitHub Container Registry](https://github.com/oschwand/invite-llm/pkgs/container/invite-llm):
 
 ```sh
-docker build -t invite-litellm .
 docker run --rm -p 8000:8000 \
-  -e LITELLM_URL=http://host.docker.internal:4000 \
+  -e LITELLM_URL=http://your.litellm:4000 \
   -e LITELLM_MASTER_KEY=sk-... \
-  invite-litellm
+  ghcr.io/oschwand/invite-llm
 ```
 
 ### Configuration
