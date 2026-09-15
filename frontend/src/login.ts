@@ -186,7 +186,7 @@ export function loginForm() {
     newTeamName: '',
     newTeamMemberBudget: '',
     newTeamMaxBudget: '',
-    newTeamInviteLink: false,
+    newTeamInviteLink: true,
     creatingTeam: false,
     createTeamError: '',
     createdTeamName: '',
@@ -310,7 +310,7 @@ export function loginForm() {
       this.newTeamName = ''
       this.newTeamMemberBudget = ''
       this.newTeamMaxBudget = ''
-      this.newTeamInviteLink = false
+      this.newTeamInviteLink = true
       this.createTeamError = ''
       this.createdTeamName = ''
       this.createdInviteLink = ''
@@ -495,7 +495,7 @@ export function loginForm() {
       this.newTeamName = ''
       this.newTeamMemberBudget = ''
       this.newTeamMaxBudget = ''
-      this.newTeamInviteLink = false
+      this.newTeamInviteLink = true
       this.createTeamError = ''
       this.createdTeamName = ''
       this.createdInviteLink = ''
