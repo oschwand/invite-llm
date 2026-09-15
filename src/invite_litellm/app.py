@@ -60,7 +60,7 @@ async def invite(team_id: str, invite_code: str) -> FileResponse:
     index = _STATIC_ROOT / "index.html"
     if not index.is_file():
         raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(index)
+    return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
 async def _litellm(method: str, path: str, *, json_body: dict[str, Any] | None = None, params: dict[str, str] | None = None) -> tuple[int, Any]:
@@ -266,7 +266,12 @@ async def config() -> dict[str, str]:
 
 @app.get("/{file_path:path}")
 async def serve_static(file_path: str) -> FileResponse:
-    target = (_STATIC_ROOT / (file_path or "index.html")).resolve()
+    if file_path in ("", "index.html"):
+        index = _STATIC_ROOT / "index.html"
+        if not index.is_file():
+            raise HTTPException(status_code=404, detail="Not found")
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})
+    target = (_STATIC_ROOT / file_path).resolve()
     if not target.is_relative_to(_STATIC_ROOT) or not target.is_file():
         raise HTTPException(status_code=404, detail="Not found")
     return FileResponse(target)
