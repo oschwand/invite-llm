@@ -13,6 +13,7 @@
         <button type="button" class="banner-button" :class="{ active: view === 'keys' }" @click="view = 'keys'">Virtual keys</button>
         <button type="button" class="banner-button" :class="{ active: view === 'teams' }" x-show="isAdmin" @click="showTeams()">Teams</button>
         <button type="button" class="banner-button" :class="{ active: view === 'create-team' }" x-show="isAdmin" @click="showCreateTeam()">Create team</button>
+        <button type="button" class="banner-button" :class="{ active: view === 'playground' }" @click="view = 'playground'">Playground</button>
         <button type="button" class="banner-button" :class="{ active: view === 'help' }" @click="view = 'help'">Help</button>
         <a class="banner-button" :href="serverUrl + '/ui'" target="_blank" rel="noopener">Go to LiteLLM Dashboard</a>
         <button type="button" class="banner-button" @click="logout()">Sign out</button>
@@ -118,6 +119,34 @@
                 </tbody>
               </table>
             </div>
+          </section>
+          <section class="keys" x-show="view === 'playground'" x-cloak>
+            <div class="keys-header">
+              <h2>Playground</h2>
+            </div>
+            <div class="pg-config">
+              <label>
+                Virtual key
+                <input type="text" class="mono" x-model="pgApiKey" placeholder="sk-…" autocomplete="off" spellcheck="false" />
+              </label>
+              <label>
+                Model
+                <input type="text" x-model="pgModel" placeholder="gpt-4o-mini" autocomplete="off" spellcheck="false" />
+              </label>
+            </div>
+            <div class="chat" x-show="pgMessages.length > 0" x-cloak>
+              <template x-for="(message, index) in pgMessages" :key="index">
+                <div class="chat-msg" :class="message.role">
+                  <div class="chat-content" x-text="message.content"></div>
+                </div>
+              </template>
+            </div>
+            <p class="empty" x-show="pgMessages.length === 0">Send a message to test a virtual key against the proxy.</p>
+            <p class="error" x-show="pgError" x-text="pgError" role="alert"></p>
+            <form class="chat-form" @submit.prevent="sendChat()">
+              <textarea x-model="pgInput" rows="2" placeholder="Type a message…" @keydown.enter.prevent="if (!$event.shiftKey) sendChat()"></textarea>
+              <button class="primary" type="submit" :disabled="pgSending || pgInput.trim() === '' || pgApiKey.trim() === '' || pgModel.trim() === ''" x-text="pgSending ? 'Sending…' : 'Send'"></button>
+            </form>
           </section>
           <section class="keys" x-show="view === 'help'" x-cloak>
             <div class="keys-header">

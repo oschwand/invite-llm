@@ -25,6 +25,7 @@ A running [LiteLLM
   member budget).
 - **Budget**: enforced by the proxy with a maximum amount chosen during
   team creation.
+- **Playground**: test a virtual key with a simple chat.
 - **Virtual keys dashboard**: list your keys with spend, budget,
   expiry; regenerate and delete them.
 - **Teams** (admin only): browse teams with their budgets, spend and

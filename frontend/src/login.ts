@@ -43,11 +43,16 @@ interface VirtualKey {
 
 type RegenStage = 'confirm' | 'working' | 'done'
 
-type View = 'keys' | 'teams' | 'create-team' | 'help'
+type View = 'keys' | 'teams' | 'create-team' | 'help' | 'playground'
 
 type InviteTab = 'signin' | 'create'
 
 type InviteStage = 'idle' | 'done'
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 interface Team {
   team_id: string
@@ -212,6 +217,13 @@ export function loginForm() {
     regenWarning: '',
     newKeyValue: '',
 
+    pgApiKey: '',
+    pgModel: '',
+    pgMessages: [] as ChatMessage[],
+    pgInput: '',
+    pgSending: false,
+    pgError: '',
+
     get isAdmin(): boolean {
       return this.session !== null && this.session.user_role !== 'internal_user'
     },
@@ -335,6 +347,11 @@ export function loginForm() {
       this.createTeamError = ''
       this.createdTeamName = ''
       this.createdInviteLink = ''
+      this.pgApiKey = ''
+      this.pgModel = ''
+      this.pgMessages = []
+      this.pgInput = ''
+      this.pgError = ''
       this.view = 'keys'
       this.closeRegenModal()
       localStorage.removeItem(STORAGE_KEY)
@@ -735,6 +752,46 @@ export function loginForm() {
       setTimeout(() => {
         this.copiedValue = null
       }, 1500)
+    },
+
+    async sendChat() {
+      if (this.pgSending) return
+      const apiKey = this.pgApiKey.trim()
+      const model = this.pgModel.trim()
+      const content = this.pgInput.trim()
+      if (apiKey === '' || model === '' || content === '') return
+      const messages: ChatMessage[] = [...this.pgMessages, { role: 'user', content }]
+      this.pgMessages = messages
+      this.pgInput = ''
+      this.pgError = ''
+      this.pgSending = true
+      try {
+        const base = this.serverUrl.replace(/\/+$/, '')
+        const response = await fetch(`${base}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ model, messages }),
+        })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          this.pgError = extractErrorMessage(body) ?? `Request failed (HTTP ${response.status})`
+          return
+        }
+        const reply = (body as { choices?: { message?: { content?: string } }[] } | null)?.choices?.[0]?.message
+          ?.content
+        if (typeof reply !== 'string') {
+          this.pgError = 'The proxy returned an unexpected response.'
+          return
+        }
+        this.pgMessages = [...this.pgMessages, { role: 'assistant', content: reply }]
+      } catch {
+        this.pgError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
+      } finally {
+        this.pgSending = false
+      }
     },
 
     openRegenModal(key: VirtualKey) {
