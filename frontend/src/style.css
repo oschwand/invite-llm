@@ -496,6 +496,47 @@ button.danger {
   border-color: var(--error);
 }
 
+.keys h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.keys p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.keys ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.keys li + li {
+  margin-top: 0.5rem;
+}
+
+.code-block {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.code-block code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-h);
+  white-space: pre;
+}
+
 @media (max-width: 640px) {
   .page {
     padding: 1rem;

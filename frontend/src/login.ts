@@ -43,7 +43,7 @@ interface VirtualKey {
 
 type RegenStage = 'confirm' | 'working' | 'done'
 
-type View = 'keys' | 'teams' | 'create-team'
+type View = 'keys' | 'teams' | 'create-team' | 'help'
 
 type InviteTab = 'signin' | 'create'
 
@@ -214,6 +214,23 @@ export function loginForm() {
 
     get isAdmin(): boolean {
       return this.session !== null && this.session.user_role !== 'internal_user'
+    },
+
+    get pythonExample(): string {
+      return [
+        'from openai import OpenAI',
+        '',
+        'client = OpenAI(',
+        `    base_url="${this.serverUrl}",  # the LiteLLM proxy server`,
+        '    api_key="sk-...",             # your virtual key',
+        ')',
+        '',
+        'response = client.chat.completions.create(',
+        '    model="gpt-4o-mini",',
+        '    messages=[{"role": "user", "content": "Hello!"}],',
+        ')',
+        'print(response.choices[0].message.content)',
+      ].join('\n')
     },
 
     async init() {

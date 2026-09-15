@@ -13,6 +13,7 @@
         <button type="button" class="banner-button" :class="{ active: view === 'keys' }" @click="view = 'keys'">Virtual keys</button>
         <button type="button" class="banner-button" :class="{ active: view === 'teams' }" x-show="isAdmin" @click="showTeams()">Teams</button>
         <button type="button" class="banner-button" :class="{ active: view === 'create-team' }" x-show="isAdmin" @click="showCreateTeam()">Create team</button>
+        <button type="button" class="banner-button" :class="{ active: view === 'help' }" @click="view = 'help'">Help</button>
         <a class="banner-button" :href="serverUrl + '/ui'" target="_blank" rel="noopener">Go to LiteLLM Dashboard</a>
         <button type="button" class="banner-button" @click="logout()">Sign out</button>
       </div>
@@ -25,11 +26,11 @@
       <main class="card">
       <template x-if="session">
         <section>
-          <h1>
+          <h1 x-show="view !== 'help'">
             <span x-text="userAlias || session.user_email || session.user_id"></span>
             <span class="beside" x-show="userAlias && session.user_email" x-text="session.user_email"></span>
           </h1>
-          <dl>
+          <dl x-show="view !== 'help'">
             <div><dt>Role</dt><dd x-text="session.user_role || 'unknown'"></dd></div>
           </dl>
           <section class="keys" x-show="view === 'keys'">
@@ -117,6 +118,51 @@
                 </tbody>
               </table>
             </div>
+          </section>
+          <section class="keys" x-show="view === 'help'" x-cloak>
+            <div class="keys-header">
+              <h2>Help</h2>
+            </div>
+
+            <h3>Calling the proxy from Python</h3>
+            <p>
+              Use any virtual key from the <em>Virtual keys</em> table as the API key of a standard
+              OpenAI client, pointing it at this proxy server
+              (<span class="mono" x-text="serverUrl"></span>). The proxy forwards requests to the
+              real model providers and tracks the spend of each key.
+            </p>
+            <pre class="code-block"><code x-text="pythonExample"></code></pre>
+            <p>
+              The proxy speaks the standard OpenAI HTTP API, so any OpenAI-compatible client
+              library, in any language, can be used the same way — provided it is pointed at the
+              proxy URL (<span class="mono" x-text="serverUrl"></span>) with a virtual key.
+            </p>
+
+            <h3>How budgets work</h3>
+            <ul>
+              <li>
+                Every virtual key has a <strong>spend</strong>, counted in US dollars by the proxy
+                on each request, and an optional <strong>budget</strong> (USD). Once a key's spend
+                reaches its budget, the proxy rejects further requests made with that key. Keys
+                without a budget show <em>No limit</em> in the table.
+              </li>
+              <li>
+                A <strong>team budget</strong> caps the combined spend of all the keys belonging to
+                a team — once the team total is reached, every key of the team stops working, even
+                keys with remaining individual budget.
+              </li>
+              <li>
+                A <strong>team member budget</strong> is the default budget automatically given to
+                the virtual key created when someone joins the team through an invite link. Team
+                admins set it when creating the team; it is shown as <em>Member budget</em> in the
+                Teams table and as <em>Default key budget</em> in the invitation page.
+              </li>
+              <li>
+                The <em>Spend</em> and <em>Budget</em> columns of the Virtual keys table (and the
+                <em>Spend</em> column of the Teams table) always show the current values tracked by
+                the proxy. Regenerating a key keeps its budget and accumulated spend.
+              </li>
+            </ul>
           </section>
           <section class="keys" x-show="view === 'create-team'" x-cloak>
             <div class="keys-header">
