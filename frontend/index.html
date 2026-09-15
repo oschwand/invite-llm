@@ -49,6 +49,7 @@
                     <th>Name</th>
                     <th>Key</th>
                     <th>Team</th>
+                    <th>Allowed models</th>
                     <th>Spend</th>
                     <th>Budget</th>
                     <th>Expires</th>
@@ -62,6 +63,7 @@
                       <td data-label="Name" x-text="key.key_alias || '(unnamed)'"></td>
                       <td class="mono" data-label="Key" x-text="key.key_name || '—'"></td>
                       <td data-label="Team" :title="key.team_id || ''" x-text="teamName(key)"></td>
+                      <td data-label="Allowed models" :title="keyModels(key)" x-text="keyModels(key)"></td>
                       <td data-label="Spend" x-text="formatSpend(key)"></td>
                       <td data-label="Budget" x-text="formatBudget(key)"></td>
                       <td data-label="Expires" x-text="formatExpiry(key)"></td>

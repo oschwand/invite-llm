@@ -691,6 +691,11 @@ export function loginForm() {
       return this.teamNames[key.team_id] ?? `${key.team_id.slice(0, 8)}…`
     },
 
+    keyModels(key: VirtualKey): string {
+      if (key.models === null || key.models.length === 0) return 'All models'
+      return key.models.join(', ')
+    },
+
     teamKeyCount(team: Team): string {
       return team.key_count === null ? '—' : String(team.key_count)
     },
