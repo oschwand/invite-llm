@@ -57,9 +57,17 @@ interface ChatMessage {
 interface ModelEntry {
   name: string
   mode: string
-  costs: Record<string, number>
+  inputCost: number | null
+  inputUnit: string
+  outputCost: number | null
+  outputUnit: string
+  cacheReadCost: number | null
+  cacheWriteCost: number | null
+  extraCosts: string
   context: number | null
 }
+
+type ModelsSort = 'name' | 'mode' | 'inputCost' | 'outputCost' | 'cacheReadCost' | 'cacheWriteCost' | 'context'
 
 interface Team {
   team_id: string
@@ -142,11 +150,33 @@ function optionalStringArray(raw: Record<string, unknown>, field: string): strin
 }
 
 function emptyModelEntry(name: string): ModelEntry {
-  return { name, mode: '', costs: {}, context: null }
+  return {
+    name,
+    mode: '',
+    inputCost: null,
+    inputUnit: '',
+    outputCost: null,
+    outputUnit: '',
+    cacheReadCost: null,
+    cacheWriteCost: null,
+    extraCosts: '',
+    context: null,
+  }
 }
 
-function formatContext(tokens: number): string {
-  return tokens >= 1000 ? `${Math.round(tokens / 1000)}k` : String(tokens)
+function costScale(field: string): number {
+  if (field.endsWith('per_token') || field.endsWith('per_character') || field.endsWith('per_audio_token')) return 1_000_000
+  return 1
+}
+
+function costUnit(field: string): string {
+  if (field.endsWith('per_audio_token')) return '/M audiotok'
+  if (field.endsWith('per_token')) return '/Mtok'
+  if (field.endsWith('per_character')) return '/Mchar'
+  if (field.endsWith('per_image')) return '/image'
+  if (field.endsWith('per_second')) return '/s'
+  if (field.endsWith('per_request')) return '/request'
+  return ''
 }
 
 const MODEL_COST_LABELS: Record<string, string> = {
@@ -276,6 +306,9 @@ export function loginForm() {
     modelsList: [] as ModelEntry[],
     modelsLoading: false,
     modelsError: '',
+    modelsFilter: '',
+    modelsSort: 'name' as ModelsSort,
+    modelsSortDir: 'asc' as 'asc' | 'desc',
 
     get isAdmin(): boolean {
       return this.session !== null && this.session.user_role !== 'internal_user'
@@ -761,11 +794,53 @@ export function loginForm() {
       this.modelsKey = key
       this.modelsList = []
       this.modelsError = ''
+      this.modelsFilter = ''
+      this.modelsSort = 'name'
+      this.modelsSortDir = 'asc'
       void this.loadModels()
     },
 
     closeModelsModal() {
       this.modelsKey = null
+    },
+
+    sortModels(column: ModelsSort) {
+      if (this.modelsSort === column) {
+        this.modelsSortDir = this.modelsSortDir === 'asc' ? 'desc' : 'asc'
+      } else {
+        this.modelsSort = column
+        this.modelsSortDir = 'asc'
+      }
+    },
+
+    sortHeader(column: ModelsSort, label: string): string {
+      if (this.modelsSort !== column) return label
+      return `${label} ${this.modelsSortDir === 'asc' ? '↑' : '↓'}`
+    },
+
+    get visibleModels(): ModelEntry[] {
+      const needle = this.modelsFilter.trim().toLowerCase()
+      const dir = this.modelsSortDir === 'asc' ? 1 : -1
+      const column = this.modelsSort
+      const sortValue = (model: ModelEntry): string | number => {
+        if (column === 'name') return model.name.toLowerCase()
+        if (column === 'mode') return model.mode.toLowerCase()
+        const numeric = model[column]
+        return typeof numeric === 'number' ? numeric : Number.POSITIVE_INFINITY
+      }
+      return this.modelsList
+        .filter(
+          (model) =>
+            needle === '' ||
+            model.name.toLowerCase().includes(needle) ||
+            model.mode.toLowerCase().includes(needle),
+        )
+        .sort((a, b) => {
+          const av = sortValue(a)
+          const bv = sortValue(b)
+          if (typeof av === 'string' || typeof bv === 'string') return dir * String(av).localeCompare(String(bv))
+          return dir * (av - bv)
+        })
     },
 
     async loadModels() {
@@ -794,10 +869,50 @@ export function loginForm() {
                 if (typeof value !== 'number' || !Number.isFinite(value) || value === 0) continue
                 costs[field] = value
               }
+              const used = new Set<string>()
+              const pickCost = (fields: string[]): { cost: number | null; unit: string } => {
+                for (const field of fields) {
+                  const value = costs[field]
+                  if (typeof value !== 'number' || value === 0) continue
+                  used.add(field)
+                  return { cost: value * costScale(field), unit: costUnit(field) }
+                }
+                return { cost: null, unit: '' }
+              }
+              const input = pickCost([
+                'input_cost_per_token',
+                'input_cost_per_character',
+                'input_cost_per_image',
+                'input_cost_per_second',
+                'input_cost_per_audio_token',
+                'input_cost_per_request',
+              ])
+              const output = pickCost([
+                'output_cost_per_token',
+                'output_cost_per_character',
+                'output_cost_per_image',
+                'output_cost_per_second',
+                'output_cost_per_audio_token',
+                'output_cost_per_request',
+              ])
+              const cacheRead = pickCost(['cache_read_input_token_cost'])
+              const cacheWrite = pickCost(['cache_creation_input_token_cost'])
+              const extras: string[] = []
+              for (const field of Object.keys(costs).sort()) {
+                if (used.has(field)) continue
+                const { label } = modelCostParts(field, costs[field])
+                extras.push(`${label} ${this.formatUsd(costs[field] * costScale(field))}${costUnit(field)}`)
+              }
               infos.set(name, {
                 name,
                 mode: typeof info.mode === 'string' ? info.mode : '',
-                costs,
+                inputCost: input.cost,
+                inputUnit: input.unit,
+                outputCost: output.cost,
+                outputUnit: output.unit,
+                cacheReadCost: cacheRead.cost,
+                cacheWriteCost: cacheWrite.cost,
+                extraCosts: extras.join(' · '),
                 context: optionalNumber(info, 'max_input_tokens') ?? optionalNumber(info, 'max_tokens'),
               })
             }
@@ -826,14 +941,8 @@ export function loginForm() {
       }
     },
 
-    modelSummary(model: ModelEntry): string {
-      const parts: string[] = []
-      for (const field of Object.keys(model.costs).sort()) {
-        const { label, amount, unit } = modelCostParts(field, model.costs[field])
-        parts.push(`${label} ${this.formatUsd(amount)}${unit}`)
-      }
-      if (model.context !== null) parts.push(`context ${formatContext(model.context)}`)
-      return parts.length > 0 ? parts.join(' · ') : 'no pricing information'
+    formatContext(tokens: number): string {
+      return tokens >= 1000 ? `${Math.round(tokens / 1000)}k` : String(tokens)
     },
 
     teamKeyCount(team: Team): string {

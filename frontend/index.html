@@ -392,25 +392,47 @@
     </footer>
 
     <div class="modal-backdrop" x-show="modelsKey !== null" x-cloak @keydown.escape.window="closeModelsModal()">
-      <div class="modal" @click.outside="closeModelsModal()">
+      <div class="modal modal-wide" @click.outside="closeModelsModal()">
         <template x-if="modelsKey">
           <div>
             <h2>Allowed models</h2>
             <p class="subtitle" x-text="modelsKey.key_alias || modelsKey.key_name || 'Key'"></p>
             <p class="error" x-show="modelsError" x-text="modelsError" role="alert"></p>
             <p class="empty" x-show="modelsLoading">Loading models…</p>
-            <ul class="model-list" x-show="!modelsLoading && modelsError === '' && modelsList.length > 0">
-              <template x-for="(model, index) in modelsList" :key="index">
-                <li>
-                  <span class="model-line">
-                    <span class="mono model-name" x-text="model.name"></span>
-                    <span class="badge model-mode" x-show="model.mode !== ''" x-text="model.mode"></span>
-                  </span>
-                  <span class="model-meta" x-text="modelSummary(model)"></span>
-                </li>
-              </template>
-            </ul>
-            <p class="empty" x-show="!modelsLoading && modelsError === '' && modelsList.length === 0">No models available.</p>
+            <template x-if="!modelsLoading && modelsError === ''">
+              <div>
+                <input type="text" x-model="modelsFilter" placeholder="Filter by name or type…" autocomplete="off" spellcheck="false" />
+                <div class="table-wrap models-wrap" x-show="visibleModels.length > 0">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="sortable" @click="sortModels('name')" x-text="sortHeader('name', 'Model')"></th>
+                        <th class="sortable" @click="sortModels('mode')" x-text="sortHeader('mode', 'Type')"></th>
+                        <th class="sortable" @click="sortModels('inputCost')" x-text="sortHeader('inputCost', 'In')"></th>
+                        <th class="sortable" @click="sortModels('outputCost')" x-text="sortHeader('outputCost', 'Out')"></th>
+                        <th class="sortable" @click="sortModels('cacheReadCost')" x-text="sortHeader('cacheReadCost', 'Cache read')"></th>
+                        <th class="sortable" @click="sortModels('cacheWriteCost')" x-text="sortHeader('cacheWriteCost', 'Cache write')"></th>
+                        <th class="sortable" @click="sortModels('context')" x-text="sortHeader('context', 'Context')"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="model in visibleModels" :key="model.name">
+                        <tr>
+                          <td class="mono" data-label="Model" x-text="model.name"></td>
+                          <td data-label="Type"><span class="badge model-mode" x-show="model.mode !== ''" x-text="model.mode"></span><span x-show="model.mode === ''">—</span></td>
+                          <td data-label="In" x-text="model.inputCost !== null ? formatUsd(model.inputCost) + model.inputUnit : '—'"></td>
+                          <td data-label="Out" x-text="model.outputCost !== null ? formatUsd(model.outputCost) + model.outputUnit : '—'"></td>
+                          <td data-label="Cache read" x-text="model.cacheReadCost !== null ? formatUsd(model.cacheReadCost) + '/Mtok' : '—'"></td>
+                          <td data-label="Cache write" x-text="model.cacheWriteCost !== null ? formatUsd(model.cacheWriteCost) + '/Mtok' : '—'"></td>
+                          <td data-label="Context" x-text="model.context !== null ? formatContext(model.context) : '—'"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="empty" x-show="visibleModels.length === 0">No model matches the filter.</p>
+              </div>
+            </template>
             <div class="modal-actions">
               <button type="button" class="primary" @click="closeModelsModal()">Close</button>
             </div>
