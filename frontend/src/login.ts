@@ -43,7 +43,7 @@ interface VirtualKey {
 
 type RegenStage = 'confirm' | 'working' | 'done'
 
-type View = 'keys' | 'teams' | 'create-team' | 'help' | 'playground'
+type View = 'keys' | 'teams' | 'help' | 'playground'
 
 type InviteTab = 'signin' | 'create'
 
@@ -266,6 +266,7 @@ export function loginForm() {
     view: 'keys' as View,
     teamsLoading: false,
     teamsError: '',
+    teamFormOpen: false,
 
     newTeamName: '',
     newTeamMemberBudget: '',
@@ -433,6 +434,7 @@ export function loginForm() {
       this.createTeamError = ''
       this.createdTeamName = ''
       this.createdInviteLink = ''
+      this.teamFormOpen = false
       this.pgApiKey = ''
       this.pgModel = ''
       this.pgMessages = []
@@ -615,13 +617,19 @@ export function loginForm() {
       if (this.teams.length === 0 || this.teamsError !== '') void this.loadTeams()
     },
 
-    showCreateTeam() {
-      this.view = 'create-team'
+    openCreateTeamForm() {
+      this.teamFormOpen = true
       this.newTeamName = ''
       this.newTeamMemberBudget = ''
       this.newTeamMaxBudget = ''
       this.newTeamInviteLink = true
       this.createTeamError = ''
+      this.createdTeamName = ''
+      this.createdInviteLink = ''
+    },
+
+    closeCreateTeamForm() {
+      this.teamFormOpen = false
       this.createdTeamName = ''
       this.createdInviteLink = ''
     },
@@ -677,7 +685,7 @@ export function loginForm() {
           this.createdInviteLink =
             teamId !== '' ? `${window.location.origin}/invite/${teamId}/${inviteCode}` : inviteCode
         } else {
-          this.view = 'teams'
+          this.teamFormOpen = false
         }
       } catch {
         this.createTeamError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`

@@ -298,6 +298,19 @@ dd {
   margin-bottom: 0.75rem;
 }
 
+.keys-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.team-form {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
 h2 {
   margin: 0;
   font-size: 1.1rem;
