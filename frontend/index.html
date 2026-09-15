@@ -48,7 +48,6 @@
                   <tr>
                     <th>Name</th>
                     <th>Key</th>
-                    <th x-show="session.user_role !== 'internal_user'">Owner</th>
                     <th>Team</th>
                     <th>Spend</th>
                     <th>Budget</th>
@@ -62,7 +61,6 @@
                     <tr>
                       <td data-label="Name" x-text="key.key_alias || '(unnamed)'"></td>
                       <td class="mono" data-label="Key" x-text="key.key_name || '—'"></td>
-                      <td class="mono" data-label="Owner" x-show="session.user_role !== 'internal_user'" :title="key.user_id || ''" x-text="key.user_id ? key.user_id.slice(0, 8) + '…' : '—'"></td>
                       <td data-label="Team" :title="key.team_id || ''" x-text="teamName(key)"></td>
                       <td data-label="Spend" x-text="formatSpend(key)"></td>
                       <td data-label="Budget" x-text="formatBudget(key)"></td>
