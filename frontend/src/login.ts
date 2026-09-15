@@ -54,6 +54,13 @@ interface ChatMessage {
   content: string
 }
 
+interface ModelEntry {
+  name: string
+  mode: string
+  costs: Record<string, number>
+  context: number | null
+}
+
 interface Team {
   team_id: string
   team_alias: string
@@ -132,6 +139,47 @@ function optionalRecord(raw: Record<string, unknown>, field: string): Record<str
 function optionalStringArray(raw: Record<string, unknown>, field: string): string[] | null {
   const value = raw[field]
   return Array.isArray(value) && value.every((item) => typeof item === 'string') ? (value as string[]) : null
+}
+
+function emptyModelEntry(name: string): ModelEntry {
+  return { name, mode: '', costs: {}, context: null }
+}
+
+function formatContext(tokens: number): string {
+  return tokens >= 1000 ? `${Math.round(tokens / 1000)}k` : String(tokens)
+}
+
+const MODEL_COST_LABELS: Record<string, string> = {
+  input_cost_per_token: 'in',
+  output_cost_per_token: 'out',
+  cache_read_input_token_cost: 'cache read',
+  cache_creation_input_token_cost: 'cache write',
+  input_cost_per_image: 'in',
+  output_cost_per_image: 'out',
+  input_cost_per_second: 'in',
+  output_cost_per_second: 'out',
+  input_cost_per_character: 'in',
+  output_cost_per_character: 'out',
+  input_cost_per_audio_token: 'audio in',
+  output_cost_per_audio_token: 'audio out',
+}
+
+function modelCostParts(field: string, value: number): { label: string; amount: number; unit: string } {
+  const generic = field
+    .replace(/_?cost_?/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\binput\b/g, 'in')
+    .replace(/\boutput\b/g, 'out')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const label = MODEL_COST_LABELS[field] ?? (generic !== '' ? generic : 'cost')
+  if (field.endsWith('per_audio_token')) return { label, amount: value * 1_000_000, unit: '/M audiotok' }
+  if (field.endsWith('per_token')) return { label, amount: value * 1_000_000, unit: '/Mtok' }
+  if (field.endsWith('per_character')) return { label, amount: value * 1_000_000, unit: '/Mchar' }
+  if (field.endsWith('per_image')) return { label, amount: value, unit: '/image' }
+  if (field.endsWith('per_second')) return { label, amount: value, unit: '/s' }
+  if (field.endsWith('per_request')) return { label, amount: value, unit: '/request' }
+  return { label, amount: value, unit: '' }
 }
 
 function parseVirtualKey(raw: Record<string, unknown>): VirtualKey {
@@ -223,6 +271,11 @@ export function loginForm() {
     pgInput: '',
     pgSending: false,
     pgError: '',
+
+    modelsKey: null as VirtualKey | null,
+    modelsList: [] as ModelEntry[],
+    modelsLoading: false,
+    modelsError: '',
 
     get isAdmin(): boolean {
       return this.session !== null && this.session.user_role !== 'internal_user'
@@ -354,6 +407,7 @@ export function loginForm() {
       this.pgError = ''
       this.view = 'keys'
       this.closeRegenModal()
+      this.closeModelsModal()
       localStorage.removeItem(STORAGE_KEY)
     },
 
@@ -693,7 +747,93 @@ export function loginForm() {
 
     keyModels(key: VirtualKey): string {
       if (key.models === null || key.models.length === 0) return 'All models'
+      const first = key.models[0].length > 24 ? `${key.models[0].slice(0, 23)}…` : key.models[0]
+      if (key.models.length === 1) return first
+      return `${first} … +${key.models.length - 1}`
+    },
+
+    keyModelsFull(key: VirtualKey): string {
+      if (key.models === null || key.models.length === 0) return 'All models'
       return key.models.join(', ')
+    },
+
+    openModelsModal(key: VirtualKey) {
+      this.modelsKey = key
+      this.modelsList = []
+      this.modelsError = ''
+      void this.loadModels()
+    },
+
+    closeModelsModal() {
+      this.modelsKey = null
+    },
+
+    async loadModels() {
+      const session = this.session
+      const key = this.modelsKey
+      if (session === null || key === null) return
+      this.modelsLoading = true
+      try {
+        const base = this.serverUrl.replace(/\/+$/, '')
+        const auth = { Authorization: `Bearer ${session.api_key}` }
+        const infos = new Map<string, ModelEntry>()
+        const response = await fetch(`${base}/model/info`, { headers: auth })
+        if (response.ok) {
+          const body: unknown = await response.json().catch(() => null)
+          const rows = (body as { data?: unknown[] } | null)?.data
+          if (Array.isArray(rows)) {
+            for (const row of rows) {
+              if (typeof row !== 'object' || row === null) continue
+              const record = row as Record<string, unknown>
+              const info = typeof record.model_info === 'object' && record.model_info !== null ? (record.model_info as Record<string, unknown>) : {}
+              const name = typeof record.model_name === 'string' ? record.model_name : typeof info.model_name === 'string' ? info.model_name : ''
+              if (name === '') continue
+              const costs: Record<string, number> = {}
+              for (const [field, value] of Object.entries(info)) {
+                if (!field.includes('cost')) continue
+                if (typeof value !== 'number' || !Number.isFinite(value) || value === 0) continue
+                costs[field] = value
+              }
+              infos.set(name, {
+                name,
+                mode: typeof info.mode === 'string' ? info.mode : '',
+                costs,
+                context: optionalNumber(info, 'max_input_tokens') ?? optionalNumber(info, 'max_tokens'),
+              })
+            }
+          }
+        } else {
+          const fallback = await fetch(`${base}/v1/models`, { headers: auth })
+          const body: unknown = await fallback.json().catch(() => null)
+          if (!fallback.ok) {
+            this.modelsError = extractErrorMessage(body) ?? `Failed to load models (HTTP ${fallback.status})`
+            return
+          }
+          const rows = (body as { data?: unknown[] } | null)?.data
+          if (Array.isArray(rows)) {
+            for (const row of rows) {
+              if (typeof row === 'object' && row !== null && typeof (row as Record<string, unknown>).id === 'string')
+                infos.set((row as Record<string, unknown>).id as string, emptyModelEntry((row as Record<string, unknown>).id as string))
+            }
+          }
+        }
+        const names = key.models !== null && key.models.length > 0 ? key.models : Array.from(infos.keys()).sort()
+        this.modelsList = names.map((name) => infos.get(name) ?? emptyModelEntry(name))
+      } catch {
+        this.modelsError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
+      } finally {
+        this.modelsLoading = false
+      }
+    },
+
+    modelSummary(model: ModelEntry): string {
+      const parts: string[] = []
+      for (const field of Object.keys(model.costs).sort()) {
+        const { label, amount, unit } = modelCostParts(field, model.costs[field])
+        parts.push(`${label} ${this.formatUsd(amount)}${unit}`)
+      }
+      if (model.context !== null) parts.push(`context ${formatContext(model.context)}`)
+      return parts.length > 0 ? parts.join(' · ') : 'no pricing information'
     },
 
     teamKeyCount(team: Team): string {
