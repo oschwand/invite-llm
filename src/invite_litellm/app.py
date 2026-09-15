@@ -228,6 +228,36 @@ async def _add_team_member(team_id: str, user_id: str) -> None:
     raise HTTPException(status_code=502, detail=f"Could not add the user to the team: {message}")
 
 
+async def _user_team_key_exists(team_id: str, user_id: str) -> bool:
+    page = 1
+    while page <= 20:
+        status, body = await _litellm(
+            "GET",
+            "/key/list",
+            params={"return_full_object": "true", "size": "100", "page": str(page)},
+        )
+        if status != 200:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Could not list existing keys on the LiteLLM server: {_error_message(body, f'HTTP {status}')}",
+            )
+        keys = body.get("keys") if isinstance(body, dict) else None
+        if not isinstance(keys, list):
+            return False
+        for entry in keys:
+            if (
+                isinstance(entry, dict)
+                and entry.get("user_id") == user_id
+                and entry.get("team_id") == team_id
+            ):
+                return True
+        total_pages = body.get("total_pages") if isinstance(body, dict) else None
+        if not isinstance(total_pages, int) or page >= total_pages:
+            return False
+        page += 1
+    return False
+
+
 async def _create_team_key(team_id: str, user_id: str, max_budget: float | None) -> str:
     payload: dict[str, Any] = {
         "team_id": team_id,
@@ -260,6 +290,12 @@ async def redeem_invite(team_id: str, invite_key: str, request: Request) -> dict
         user_id = await _user_id_from_key(bearer)
     else:
         user_id = await _create_user(_parse_account(await request.body()))
+
+    if await _user_team_key_exists(team_id, user_id):
+        raise HTTPException(
+            status_code=409,
+            detail="You already have a virtual key for this team. Sign in and reuse it, or regenerate it from the key list.",
+        )
 
     await _add_team_member(team_id, user_id)
     key = await _create_team_key(team_id, user_id, member_budget)
