@@ -2,7 +2,7 @@
 
 ## What this is
 
-`invite-llm` is the frontend of the `invite-litellm` project: a Vite 8 + TypeScript 6 SPA using Alpine.js (no other framework). It sits inside a parent directory containing a separate (currently empty) Python `uv` project — don't confuse the two; all frontend work happens here.
+`invite-llm` is the frontend of the `invite-litellm` project: a Vite 8 + TypeScript 6 SPA using Alpine.js (no other framework). The parent directory holds the Python `uv` backend that serves this SPA's production build and implements invite redemption — all frontend work happens here.
 
 Current feature: a login form that authenticates against a LiteLLM proxy server, then lists the virtual keys visible to the connected user.
 
@@ -14,7 +14,7 @@ Current feature: a login form that authenticates against a LiteLLM proxy server,
 
 ## Configuration
 
-- The LiteLLM server URL is **not editable in the UI** — it comes from the `VITE_LITELLM_URL` env var (Vite inlines it at build/dev start). Set it in `.env` (default: `http://localhost:4000`) or `.env.local`; restart the dev server after changing it.
+- The LiteLLM server URL is **not editable in the UI** — at runtime it comes from the backend: `init()` first awaits `loadServerConfig()` (same-origin `GET /config`, 5 s timeout; `vite.config.ts` proxies `/config` to `http://127.0.0.1:8000` in dev) and overrides `serverUrl` with the backend's `litellm_url` (its runtime `LITELLM_URL`). The build-time value is only the fallback when no backend answers: `import.meta.env.LITELLM_URL` (`vite.config.ts` sets `envPrefix` to expose exactly that variable — not the whole `LITELLM_` prefix, so secrets like `LITELLM_MASTER_KEY` are never inlined). Set the fallback in `.env` (default: `http://localhost:4000`) or `.env.local`; restart the dev server after changing it.
 
 There is no test framework, linter, or formatter configured. The only automated check is the `tsc` pass inside `build`.
 
@@ -37,6 +37,7 @@ Alpine.js SPA, no router, no build-time templating:
 3. `src/login.ts` exports the `loginForm()` component factory: form state, the `POST /v2/login` call, JWT session decode, and localStorage persistence (`litellm_session` key). Follow this pattern for new components: markup in `index.html`, logic as an exported factory function in `src/`.
 4. Styling is one global stylesheet, `src/style.css`, with light/dark CSS custom properties on `:root`. `[x-cloak] { display: none }` prevents template flash before Alpine initializes.
 5. Static assets in `src/assets/` are imported as URLs; `public/` files are served at the root path.
+6. On load, `init()` also fires `checkServer()`: an unauthenticated `GET {server}/health/liveliness` with a 5 s timeout (`AbortSignal.timeout`). Any HTTP response — even 4xx/5xx — counts as reachable; only a network error (connection refused, CORS failure, timeout) sets `serverUnreachable`, which shows the `.server-alert` warning strip under the header (markup in `index.html`, style in `style.css`) with a Retry button that re-runs the check. The real proxy's `allow_origins=["*"]` makes the cross-origin ping work; a bare local test double without CORS headers would false-negative in a real browser.
 
 `alpinejs` ships no TypeScript types — `@types/alpinejs` (devDependency) provides them.
 

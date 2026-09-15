@@ -1,6 +1,7 @@
 """Static file server and invite backend for the invite-litellm frontend build."""
 
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -23,9 +24,29 @@ _MEMBER_PERMISSIONS = ("/key/generate", "/key/delete")
 
 _client = httpx.AsyncClient(base_url=_LITELLM_URL, timeout=30.0)
 
+_logger = logging.getLogger(__name__)
+if not _logger.handlers:
+    _log_handler = logging.StreamHandler()
+    _log_handler.setFormatter(logging.Formatter("%(levelname)s:     %(message)s"))
+    _logger.addHandler(_log_handler)
+    _logger.setLevel(logging.INFO)
+
+
+async def _check_litellm_reachable() -> None:
+    try:
+        await _client.get("/health/liveliness", timeout=5.0)
+    except httpx.HTTPError:
+        _logger.warning(
+            "Cannot reach the LiteLLM server at %s — check that it is running. Invite redemption will fail until it is back.",
+            _LITELLM_URL,
+        )
+    else:
+        _logger.info("LiteLLM server at %s is reachable", _LITELLM_URL)
+
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
+    await _check_litellm_reachable()
     yield
     await _client.aclose()
 
@@ -236,6 +257,11 @@ async def redeem_invite(team_id: str, invite_key: str, request: Request) -> dict
     await _add_team_member(team_id, user_id)
     key = await _create_team_key(team_id, user_id, member_budget)
     return {"key": key, "user_id": user_id, "team_id": team_id}
+
+
+@app.get("/config")
+async def config() -> dict[str, str]:
+    return {"litellm_url": _LITELLM_URL}
 
 
 @app.get("/{file_path:path}")

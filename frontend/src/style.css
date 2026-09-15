@@ -83,6 +83,19 @@ body {
   border-bottom: 1px solid var(--accent-border);
 }
 
+.server-alert {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.85rem;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--warn-border);
+}
+
 .page {
   box-sizing: border-box;
   width: 100%;

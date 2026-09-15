@@ -17,6 +17,10 @@
         <button type="button" class="banner-button" @click="logout()">Sign out</button>
       </div>
     </header>
+    <div class="server-alert" x-show="serverUnreachable" x-cloak role="alert">
+      <span>Cannot reach the LiteLLM server at <span class="mono" x-text="serverUrl"></span> — check that it is running.</span>
+      <button type="button" class="link" @click="checkServer()">Retry</button>
+    </div>
     <div class="page">
       <main class="card">
       <template x-if="session">

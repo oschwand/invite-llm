@@ -4,7 +4,7 @@
 
 `invite-litellm` is a monorepo-style project with two independent parts:
 
-- **`src/invite_litellm/`** — the Python `uv` backend (FastAPI), two jobs: (1) serve the frontend production build from `frontend/dist/` — a `GET /invite/{team_id}/{invite_code}` route serves `index.html` **directly** (no redirect, so the invite URL stays in the address bar for the SPA to parse) and a catch-all `GET /{file_path:path}` serves static files (`FileResponse`, 404 on missing files and path-traversal attempts); (2) redeem invite links: `POST /invite/{team_id}/{invite_key}` creates a virtual key on the LiteLLM proxy server-side. `main()` runs it with uvicorn on `127.0.0.1:8000`. Requires `npm run build` in `frontend/` first.
+- **`src/invite_litellm/`** — the Python `uv` backend (FastAPI), two jobs: (1) serve the frontend production build from `frontend/dist/` — a `GET /invite/{team_id}/{invite_code}` route serves `index.html` **directly** (no redirect, so the invite URL stays in the address bar for the SPA to parse) and a catch-all `GET /{file_path:path}` serves static files (`FileResponse`, 404 on missing files and path-traversal attempts); it also exposes `GET /config` returning `{"litellm_url": ...}` — registered *before* the catch-all, or it would be shadowed — which the SPA fetches on load to adopt the backend's runtime `LITELLM_URL`; (2) redeem invite links: `POST /invite/{team_id}/{invite_key}` creates a virtual key on the LiteLLM proxy server-side. `main()` runs it with uvicorn on the `HOST`/`PORT` env vars (defaults `127.0.0.1:8000`; the Dockerfile sets `HOST=0.0.0.0`). At startup the lifespan pings unauthenticated `GET {LITELLM_URL}/health/liveliness` (5 s timeout, any HTTP response = reachable — same semantics as the frontend's check) and logs an INFO line on success or a warning if the proxy is down; startup is never blocked. The module's logger carries its own stderr handler (uvicorn-compatible format, guarded against duplicate handlers on reload) since uvicorn configures no root handlers. Requires `npm run build` in `frontend/` first.
 - **`frontend/`** — the SPA: a Vite 8 + TypeScript 6 + Alpine.js app that logs into a LiteLLM proxy server and manages its virtual keys. **Read `frontend/AGENTS.md` before any frontend work** — it contains hard-won knowledge about the LiteLLM API (hidden login endpoint, auth via the JWT `key` claim, key-regeneration simulation, error-shape quirks) that is not discoverable from the code or the LiteLLM OpenAPI spec.
 
 The Python side serves the built SPA **and** implements the invite-redemption backend that the SPA's invite modal calls (frontend state/logic is still all in `frontend/`).
@@ -42,6 +42,15 @@ npm run build      # tsc (typecheck-only, noEmit) then vite build; type errors f
 npm run preview    # serve the production build
 ```
 
+Container (multi-stage `Dockerfile` at the repo root — `node:22-alpine` builds the SPA, a `python:3.13-slim` + uv stage builds the venv from `uv.lock`, and the final slim stage copies only `.venv` + `frontend/dist` and runs as non-root):
+
+```sh
+podman build -t invite-litellm --build-arg LITELLM_URL=https://litellm.example.com .
+podman run -p 8000:8000 -e LITELLM_MASTER_KEY=sk-... invite-litellm
+```
+
+The `LITELLM_URL` build arg sets only the runtime default — nothing is baked into the SPA bundle. The frontend gets the URL at runtime from the backend's `GET /config`, so `-e LITELLM_URL=...` on `podman run` reaches both the backend's upstream calls and the browser: one value, no drift. `LITELLM_MASTER_KEY` is runtime-only (`-e`), never a build arg — `.dockerignore` keeps `.env` files out of the image entirely.
+
 There are **no tests, linters, formatters, or CI** configured anywhere. The only automated check in the whole repo is the `tsc` pass inside `npm run build`.
 
 ## Git
@@ -52,6 +61,6 @@ Single repository at the root; `frontend/` is a subdirectory, not a submodule or
 
 - The static route in `app.py` is a **catch-all** — any new API endpoint must be registered *before* it in the file, or it will be shadowed.
 - The repo-root `.env` (holding `LITELLM_MASTER_KEY`, `LITELLM_URL`) is gitignored and machine-local — it must contain the LiteLLM proxy's **master key** for invite redemption to work (env-credential admin).
-- `frontend/.env` (holding `VITE_LITELLM_URL`, default `http://localhost:4000`) is untracked and machine-local. The LiteLLM server URL is baked in at Vite build/dev-start time; changing it requires a dev-server restart, and serving via the Python backend serves only the *built* bundle.
+- `frontend/.env` (holding `LITELLM_URL`, default `http://localhost:4000` — same variable as the backend; `frontend/vite.config.ts` exposes exactly this one non-`VITE_` var via `envPrefix`, deliberately not the whole `LITELLM_` prefix so `LITELLM_MASTER_KEY` can never be inlined into the bundle) is untracked and machine-local. The LiteLLM server URL is baked in at Vite build/dev-start time; changing it requires a dev-server restart, and serving via the Python backend serves only the *built* bundle.
 - The Python build backend is `uv_build` with a `src/` layout — new modules go in `src/invite_litellm/`, not the repo root.
 - A live LiteLLM proxy for testing is expected at `http://localhost:4000` (swagger at `/`, OpenAPI at `/openapi.json`). Its `/v2/login` route is hidden from that OpenAPI spec — see `frontend/AGENTS.md`.

@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'litellm_session'
 
-const SERVER_URL = String(import.meta.env.VITE_LITELLM_URL ?? 'http://localhost:4000').replace(/\/+$/, '')
+const SERVER_URL = String(import.meta.env.LITELLM_URL ?? 'http://localhost:4000').replace(/\/+$/, '')
 
 interface Session {
   token: string
@@ -164,6 +164,7 @@ function parseVirtualKey(raw: Record<string, unknown>): VirtualKey {
 export function loginForm() {
   return {
     serverUrl: SERVER_URL,
+    serverUnreachable: false,
     username: '',
     password: '',
     loading: false,
@@ -214,7 +215,9 @@ export function loginForm() {
       return this.session !== null && this.session.user_role !== 'internal_user'
     },
 
-    init() {
+    async init() {
+      await this.loadServerConfig()
+      void this.checkServer()
       const inviteMatch = window.location.pathname.match(/^\/invite\/([^/]+)\/([^/]+)\/?$/)
       if (inviteMatch !== null) {
         this.inviteTeamId = decodeURIComponent(inviteMatch[1])
@@ -235,6 +238,30 @@ export function loginForm() {
         void this.loadInviteTeamInfo()
       } catch {
         localStorage.removeItem(STORAGE_KEY)
+      }
+    },
+
+    async loadServerConfig() {
+      try {
+        const response = await fetch('/config', { signal: AbortSignal.timeout(5000) })
+        if (!response.ok) return
+        const body: unknown = await response.json().catch(() => null)
+        const url = (body as { litellm_url?: string } | null)?.litellm_url
+        if (typeof url === 'string' && url !== '') this.serverUrl = url.replace(/\/+$/, '')
+      } catch {
+        return
+      }
+    },
+
+    async checkServer() {
+      this.serverUnreachable = false
+      try {
+        await fetch(`${this.serverUrl.replace(/\/+$/, '')}/health/liveliness`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000),
+        })
+      } catch {
+        this.serverUnreachable = true
       }
     },
 
