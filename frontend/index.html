@@ -80,7 +80,7 @@
             </div>
             <p class="error" x-show="teamsError" x-text="teamsError" role="alert"></p>
             <p class="empty" x-show="teamsLoading && teams.length === 0">Loading teams…</p>
-            <p class="empty" x-show="!teamsLoading && !teamsError && teams.length === 0">No teams found on this server.</p>
+            <p class="empty" x-show="!teamsLoading && !teamsError && teams.length === 0">No teams with an invite link found on this server.</p>
             <div class="table-wrap" x-show="teams.length > 0">
               <table>
                 <thead>

@@ -509,8 +509,9 @@ export function loginForm() {
         this.createTeamError = 'Team name is required.'
         return
       }
+      const teamName = name.startsWith('Invite/') ? name : `Invite/${name}`
       const payload: Record<string, unknown> = {
-        team_alias: name,
+        team_alias: teamName,
         team_member_permissions: ['/key/generate', '/key/delete'],
       }
       const budgets: Array<[string, string, string]> = [
@@ -547,7 +548,7 @@ export function loginForm() {
         const teamId = typeof rawTeamId === 'string' ? rawTeamId : ''
         void this.loadTeams()
         if (inviteCode !== null) {
-          this.createdTeamName = name
+          this.createdTeamName = teamName
           this.createdInviteLink =
             teamId !== '' ? `${window.location.origin}/invite/${teamId}/${inviteCode}` : inviteCode
         } else {
@@ -598,6 +599,7 @@ export function loginForm() {
               invite_code: info?.invite_code ?? null,
             }
           })
+          .filter((team) => team.invite_code !== null && team.invite_code !== '')
           .sort((a, b) => a.team_alias.localeCompare(b.team_alias))
       } catch {
         this.teamsError = `Could not reach the LiteLLM server at ${this.serverUrl}. Is it running?`
