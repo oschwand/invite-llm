@@ -355,6 +355,27 @@ td code {
   font-family: var(--mono);
 }
 
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  border-top: 1px solid var(--border);
+}
+
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
 .invite-cell {
   display: inline-flex;
   align-items: center;

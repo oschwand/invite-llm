@@ -165,6 +165,7 @@ export function loginForm() {
   return {
     serverUrl: SERVER_URL,
     serverUnreachable: false,
+    appVersion: '',
     username: '',
     password: '',
     loading: false,
@@ -246,8 +247,11 @@ export function loginForm() {
         const response = await fetch('/config', { signal: AbortSignal.timeout(5000) })
         if (!response.ok) return
         const body: unknown = await response.json().catch(() => null)
-        const url = (body as { litellm_url?: string } | null)?.litellm_url
+        const config = body as { litellm_url?: string; version?: string } | null
+        const url = config?.litellm_url
         if (typeof url === 'string' && url !== '') this.serverUrl = url.replace(/\/+$/, '')
+        const version = config?.version
+        if (typeof version === 'string' && version !== '') this.appVersion = version
       } catch {
         return
       }

@@ -14,7 +14,7 @@ Current feature: a login form that authenticates against a LiteLLM proxy server,
 
 ## Configuration
 
-- The LiteLLM server URL is **not editable in the UI** — at runtime it comes from the backend: `init()` first awaits `loadServerConfig()` (same-origin `GET /config`, 5 s timeout; `vite.config.ts` proxies `/config` to `http://127.0.0.1:8000` in dev) and overrides `serverUrl` with the backend's `litellm_url` (its runtime `LITELLM_URL`). The build-time value is only the fallback when no backend answers: `import.meta.env.LITELLM_URL` (`vite.config.ts` sets `envPrefix` to expose exactly that variable — not the whole `LITELLM_` prefix, so secrets like `LITELLM_MASTER_KEY` are never inlined). Set the fallback in `.env` (default: `http://localhost:4000`) or `.env.local`; restart the dev server after changing it.
+- The LiteLLM server URL is **not editable in the UI** — at runtime it comes from the backend: `init()` first awaits `loadServerConfig()` (same-origin `GET /config`, 5 s timeout; `vite.config.ts` proxies `/config` to `http://127.0.0.1:8000` in dev) and overrides `serverUrl` with the backend's `litellm_url` (its runtime `LITELLM_URL`). The same response also carries the app `version` (source of truth: `pyproject.toml`, via `importlib.metadata`), displayed in the footer as `v<x.y.z>` (hidden when no backend answers, e.g. bare dev server). The build-time value is only the fallback when no backend answers: `import.meta.env.LITELLM_URL` (`vite.config.ts` sets `envPrefix` to expose exactly that variable — not the whole `LITELLM_` prefix, so secrets like `LITELLM_MASTER_KEY` are never inlined). Set the fallback in `.env` (default: `http://localhost:4000`) or `.env.local`; restart the dev server after changing it.
 
 There is no test framework, linter, or formatter configured. The only automated check is the `tsc` pass inside `build`.
 
@@ -88,3 +88,4 @@ Esc/outside/Close dismisses via `closeInviteModal()` (resets all invite state an
 
 - Part of the parent git repository (the root repo tracks `frontend/` directly; no separate repo here).
 - A live LiteLLM server for testing runs at `http://localhost:4000` (swagger at `/`, openapi at `/openapi.json`).
+- A static `<footer class="footer">` at the end of `index.html` shows the project name as a link (`Invite-LiteLLM` → `https://github.com/oschwand/invite-llm`), the version, and "Connected to `<serverUrl>`" (reactive `x-text`, so it reflects the backend-provided `litellm_url` or the fallback). **Bump the version manually alongside the `pyproject.toml` version** (kept static because the Docker frontend build stage only copies `frontend/`, so build-time injection from the parent project is not possible).

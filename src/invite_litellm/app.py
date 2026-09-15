@@ -4,6 +4,8 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _package_version
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +22,10 @@ _STATIC_ROOT = Path(os.environ.get("STATIC_DIR", _PROJECT_ROOT / "frontend" / "d
 
 _LITELLM_URL = os.environ.get("LITELLM_URL", "http://localhost:4000").rstrip("/")
 _LITELLM_MASTER_KEY = os.environ.get("LITELLM_MASTER_KEY", "")
+try:
+    _VERSION = _package_version("invite-litellm")
+except PackageNotFoundError:
+    _VERSION = "unknown"
 _MEMBER_PERMISSIONS = ("/key/generate", "/key/delete")
 
 _client = httpx.AsyncClient(base_url=_LITELLM_URL, timeout=30.0)
@@ -261,7 +267,7 @@ async def redeem_invite(team_id: str, invite_key: str, request: Request) -> dict
 
 @app.get("/config")
 async def config() -> dict[str, str]:
-    return {"litellm_url": _LITELLM_URL}
+    return {"litellm_url": _LITELLM_URL, "version": _VERSION}
 
 
 @app.get("/{file_path:path}")
