@@ -1,8 +1,10 @@
 [project]
 name = "invite-litellm"
 version = "0.1.0"
-description = "Add your description here"
+description = "Self-service key management for a LiteLLM proxy"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Olivier Schwander", email = "olivier.schwander@chadok.info" }
 ]
