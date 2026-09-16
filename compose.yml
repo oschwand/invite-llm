@@ -1,0 +1,9 @@
+services:
+  invite-litellm:
+    image: ghcr.io/oschwand/invite-llm
+    ports:
+      - "8000:8000"
+    environment:
+      LITELLM_URL: ${LITELLM_URL:-http://localhost:4000}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+    restart: unless-stopped
