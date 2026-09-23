@@ -262,7 +262,7 @@ async def _create_team_key(team_id: str, user_id: str, max_budget: float | None)
     payload: dict[str, Any] = {
         "team_id": team_id,
         "user_id": user_id,
-        "models": ["all-team-models"],
+        "models": [],
         "metadata": {"created_via": "invite"},
     }
     if max_budget is not None:

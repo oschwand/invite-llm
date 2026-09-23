@@ -1,6 +1,6 @@
 [project]
 name = "invite-litellm"
-version = "0.2.0"
+version = "0.2.1"
 description = "Self-service key management for a LiteLLM proxy"
 readme = "README.md"
 license = "MIT"
