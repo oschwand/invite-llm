@@ -2,7 +2,7 @@
 
 ## What this is
 
-`invite-llm` is the frontend of the `invite-litellm` project: a Vite 8 + TypeScript 6 SPA using Alpine.js (no other framework). The parent directory holds the Python `uv` backend that serves this SPA's production build and implements invite redemption — all frontend work happens here.
+`invite-litellm` is the frontend of the `invite-litellm` project: a Vite 8 + TypeScript 6 SPA using Alpine.js (no other framework). The parent directory holds the Python `uv` backend that serves this SPA's production build and implements invite redemption — all frontend work happens here.
 
 Current feature: a login form that authenticates against a LiteLLM proxy server, then lists the virtual keys visible to the connected user.
 
@@ -89,4 +89,4 @@ Esc/outside/Close dismisses via `closeInviteModal()` (resets all invite state an
 
 - Part of the parent git repository (the root repo tracks `frontend/` directly; no separate repo here).
 - A live LiteLLM server for testing runs at `http://localhost:4000` (swagger at `/`, openapi at `/openapi.json`).
-- A static `<footer class="footer">` at the end of `index.html` shows the project name as a link (`Invite-LiteLLM` → `https://github.com/oschwand/invite-llm`), the version, and "Connected to `<serverUrl>`" (reactive `x-text`, so it reflects the backend-provided `litellm_url` or the fallback). **Bump the version manually alongside the `pyproject.toml` version** (kept static because the Docker frontend build stage only copies `frontend/`, so build-time injection from the parent project is not possible).
+- A static `<footer class="footer">` at the end of `index.html` shows the project name as a link (`Invite-LiteLLM` → `https://github.com/oschwand/invite-litellm`), the version, and "Connected to `<serverUrl>`" (reactive `x-text`, so it reflects the backend-provided `litellm_url` or the fallback). **Bump the version manually alongside the `pyproject.toml` version** (kept static because the Docker frontend build stage only copies `frontend/`, so build-time injection from the parent project is not possible).

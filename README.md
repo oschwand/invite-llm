@@ -50,13 +50,13 @@ uv run invite-litellm
 ### Docker
 
 A prebuilt multi-arch image (amd64/arm64) is published on
-[GitHub Container Registry](https://github.com/oschwand/invite-llm/pkgs/container/invite-llm):
+[GitHub Container Registry](https://github.com/oschwand/invite-litellm/pkgs/container/invite-litellm):
 
 ```sh
 docker run --rm -p 8000:8000 \
   -e LITELLM_URL=http://your.litellm:4000 \
   -e LITELLM_MASTER_KEY=sk-... \
-  ghcr.io/oschwand/invite-llm
+  ghcr.io/oschwand/invite-litellm
 ```
 
 ### Configuration

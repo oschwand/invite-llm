@@ -1,6 +1,6 @@
 services:
   invite-litellm:
-    image: ghcr.io/oschwand/invite-llm
+    image: ghcr.io/oschwand/invite-litellm
     ports:
       - "8000:8000"
     environment:
